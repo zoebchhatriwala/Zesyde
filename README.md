@@ -36,22 +36,23 @@ pipeline_tag: text-classification
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Latency](https://img.shields.io/badge/Latency-sub--15ms-brightgreen.svg)]()
-[![Model Size](https://img.shields.io/badge/ONNX_INT8-~95MB-success.svg)]()
+[![Latency](https://img.shields.io/badge/Latency-12--35ms_CPU-brightgreen.svg)]()
+[![Model Size](https://img.shields.io/badge/ONNX_INT8-318MB-success.svg)]()
+[![Parameters](https://img.shields.io/badge/Parameters-313M_(150M_Core)-blue.svg)]()
 [![Context](https://img.shields.io/badge/Context-8192_Tokens-orange.svg)]()
 
 **Zesyde** is a production-ready, non-autoregressive foundation model engineered for **ultra-fast, mathematically calibrated zero-shot decisions and agent routing** across 1,800+ languages.
 
-Instead of generating text token-by-token with massive generative LLMs, Zesyde scores arbitrary candidate sets simultaneously in **sub-15 milliseconds on a single CPU core** using candidate-token pooling, prompt-context fusion, and out-of-sample temperature scaling.
+Instead of generating text token-by-token with massive generative LLMs, Zesyde scores arbitrary candidate sets simultaneously in **12–35 milliseconds on pure CPU** using candidate-token pooling, prompt-context fusion, and out-of-sample temperature scaling.
 
 ---
 
 ## 🚀 Key Highlights
 
-* **Blazing Fast (Non-Autoregressive)**: Generates decisions in **sub-15ms** on pure CPU (via INT8 ONNX Runtime). No autoregressive token generation overhead.
+* **Blazing Fast (Non-Autoregressive)**: Generates decisions in **12–35ms** on pure CPU via INT8 ONNX Runtime (p50 ~12ms on short sequences / AVX-512, ~33ms average across benchmarks). No autoregressive token generation overhead.
 * **Mathematically Calibrated**: Built-in post-hoc temperature scaling fitted via strictly proper scoring rules. Minimizes Expected Calibration Error (**ECE < 2.5%**). Predicted confidence matches empirical accuracy.
-* **Massive Cross-Lingual Coverage**: Native support across **1,800+ languages** utilizing `jhu-clsp/mmBERT` and `answerdotai/ModernBERT` backbones with zero-dependency heuristic script routing.
-* **8,192-Token Dynamic Context**: RoPE-based rotary positional embeddings and dynamic ONNX axes support sequences up to **8,192 tokens**.
+* **Massive Cross-Lingual Coverage**: Native support across **1,800+ languages** utilizing `jhu-clsp/mmBERT-base` with zero-dependency heuristic script routing. 313M total parameters (150M-class ModernBERT transformer core + 256k-token multilingual embedding table).
+* **8,192-Token Architectural Context**: RoPE-based rotary positional embeddings and dynamic ONNX axes support sequences up to **8,192 tokens** (fine-tuned up to 1,024 tokens).
 * **Autonomous Escalation Head (`Act/Escalate`)**: Built-in binary routing logit that autonomously flags low-confidence or high-risk inputs for human review or fallback to heavier frontier models.
 * **Drop-in CPU Serving**: Optimized FP32 and INT8 ONNX graphs with dynamic quantization and a standalone FastAPI + aesthetic web dashboard.
 
@@ -94,10 +95,10 @@ pip install -e .
 ```python
 from zesyde.router import ZesydeRouter
 
-# Load calibrated INT8 ONNX engine
-router = ZesydeRouter.from_pretrained("models", max_length=8192)
+# Load calibrated INT8 ONNX engine (or omit prefer_fp32 for FP32)
+router = ZesydeRouter.from_pretrained("models", prefer_fp32=False, max_length=1024)
 
-# Make a calibrated, sub-15ms routing decision
+# Make a calibrated, fast routing decision
 result = router.decide(
     context="The new flagship battery lasts for over 3 days on a single charge.",
     question="What is the sentiment of this review?",
@@ -107,7 +108,7 @@ result = router.decide(
 print(f"Selected: {result.selected_option}")       # "Positive"
 print(f"Confidence: {result.confidence:.3f}")        # 0.982
 print(f"Should Escalate: {result.should_escalate}")  # False
-print(f"Latency: {result.latency_ms:.1f}ms")         # 12.4ms
+print(f"Latency: {result.latency_ms:.1f}ms")         # ~12.4ms (short sequence)
 ```
 
 ---
@@ -212,10 +213,10 @@ Training can be paused safely at any point:
 ## 📦 Export Artifacts
 
 Running the pipeline outputs complete serving artifacts to `models/`:
-* `zesyde_prod_int8.onnx`: Dynamically quantized 8-bit ONNX model for CPU inference (~95 MB).
-* `zesyde_prod_fp32.onnx`: Full-precision 32-bit ONNX model (~1.1 GB).
+* `zesyde_prod_int8.onnx`: Dynamically quantized 8-bit ONNX model for CPU inference (~318 MB / ~95 MB non-embedding weights).
+* `zesyde_prod_fp32.onnx`: Full-precision 32-bit ONNX model (~1.16 GB).
 * `zesyde_calibration.json`: Persisted temperature scaling lookup table.
-* `zesyde_trained.pt`: Full PyTorch model checkpoint.
+* `zesyde_trained.pt`: Full PyTorch model checkpoint (~1.17 GB, 313.1M parameters).
 
 ---
 
@@ -227,7 +228,7 @@ Running the pipeline outputs complete serving artifacts to `models/`:
   title = {Zesyde: Calibrated, Non-Autoregressive Decision & Routing Foundation Models},
   year = {2026},
   version = {1.0.0},
-  url = {https://github.com/your-org/zesyde}
+  url = {https://huggingface.co/zoebchhatriwala/Zesyde-150M-Multilingual-Router}
 }
 ```
 
