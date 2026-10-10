@@ -21,19 +21,19 @@ class ZesydeDataset(Dataset):
 
 # Target proportional distribution across the 13 Laya-style task families (sums to 1.0)
 CATEGORY_WEIGHTS = {
-    "conversation_outcomes": 0.120,   # ~15K @ 125K (resolution / escalation)
-    "response_quality":      0.112,   # ~14K @ 125K (1-5 ordinal score)
-    "inference_fact_check":  0.104,   # ~13K @ 125K (XNLI logic / entailment)
-    "moderation_safety":     0.096,   # ~12K @ 125K (multilingual spam & fraud)
-    "email_triage":          0.096,   # ~12K @ 125K (customer support / orders)
-    "emotion_tone":          0.064,   # ~8K  @ 125K (joy, anger, sadness, fear)
-    "intent_routing":        0.056,   # ~7K  @ 125K (MASSIVE tool / intent routing)
-    "sentiment_rating":      0.040,   # ~5K  @ 125K (positive, neutral, negative)
-    "reading_comprehension": 0.032,   # ~4K  @ 125K (Belebele 122 dialects)
-    "topic_classification":  0.032,   # ~4K  @ 125K (AG News & verticals)
-    "robustness_checks":     0.028,   # ~3.5K @ 125K (noisy, abbreviated text)
-    "search_relevance":      0.028,   # ~3.5K @ 125K (query-passage matching)
-    "instruction_following": 0.024,   # ~3.0K @ 125K (policy & rule verification)
+    "conversation_outcomes": 0.144,   # ~18K @ 125K (resolution / escalation)
+    "response_quality":      0.135,   # ~17K @ 125K (1-5 ordinal score)
+    "inference_fact_check":  0.125,   # ~16K @ 125K (XNLI logic / entailment)
+    "moderation_safety":     0.115,   # ~14K @ 125K (multilingual spam & fraud)
+    "email_triage":          0.115,   # ~14K @ 125K (customer support / orders)
+    "emotion_tone":          0.077,   # ~10K @ 125K (joy, anger, sadness, fear)
+    "intent_routing":        0.067,   # ~8.4K @ 125K (MASSIVE tool / intent routing)
+    "sentiment_rating":      0.048,   # ~6K  @ 125K (positive, neutral, negative)
+    "reading_comprehension": 0.038,   # ~4.8K @ 125K (Belebele 122 dialects)
+    "topic_classification":  0.038,   # ~4.8K @ 125K (AG News & verticals)
+    "robustness_checks":     0.034,   # ~4.2K @ 125K (noisy, abbreviated text)
+    "search_relevance":      0.034,   # ~4.2K @ 125K (query-passage matching)
+    "instruction_following": 0.030,   # ~3.8K @ 125K (policy & rule verification)
 }
 
 
@@ -146,26 +146,34 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
     # =========================================================================
     print(f"\nBuilding balanced 13-category multilingual dataset (target limit: {limit:,})...")
 
-    # Helper quotas per category
-    targets = {cat: int(limit * weight) if limit > 0 else int(1000 * weight) for cat, weight in CATEGORY_WEIGHTS.items()}
+    # Dynamically normalize weights so quota targets sum exactly to limit
+    total_w = sum(CATEGORY_WEIGHTS.values())
+    norm_weights = {k: v / total_w for k, v in CATEGORY_WEIGHTS.items()}
+    targets = {cat: int(round(limit * weight)) if limit > 0 else int(1000 * weight) for cat, weight in norm_weights.items()}
+    if limit > 0:
+        quota_diff = limit - sum(targets.values())
+        if quota_diff != 0:
+            targets["conversation_outcomes"] += quota_diff
 
     # -------------------------------------------------------------------------
-    # 1. CONVERSATION OUTCOMES (~12% | noul & choice)
+    # 1. CONVERSATION OUTCOMES (~14.4% | noul & choice)
     # -------------------------------------------------------------------------
     t_conv = targets["conversation_outcomes"]
     conv_count = 0
     try:
         ds_oasst = load_dataset('OpenAssistant/oasst1', split='train')
-        for idx, row in enumerate(ds_oasst):
+        n_oasst = len(ds_oasst)
+        for idx in range(t_conv * 3):
             if conv_count >= t_conv:
                 break
+            row = ds_oasst[idx % n_oasst]
             text = row.get('text', '').strip()
             if not text or len(text) < 20:
                 continue
             lang = row.get('lang', 'en')
             if conv_count % 2 == 0:
                 examples.append(DecisionExample(
-                    id=f"conv_outcome_{idx:06d}",
+                    id=f"conv_outcome_{conv_count:06d}",
                     context=text[:500],
                     question="Has this customer query reached a satisfactory resolution?",
                     question_type=QuestionType.NOUL,
@@ -175,7 +183,7 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
                 ))
             else:
                 examples.append(DecisionExample(
-                    id=f"conv_action_{idx:06d}",
+                    id=f"conv_action_{conv_count:06d}",
                     context=text[:500],
                     question="What is the required outcome for this interaction?",
                     question_type=QuestionType.CHOICE,
@@ -188,18 +196,20 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
         print(f"Warning in category 1 (Conversation Outcomes): {e}")
 
     # -------------------------------------------------------------------------
-    # 2. RESPONSE QUALITY SCORING (~11.2% | score)
+    # 2. RESPONSE QUALITY SCORING (~13.5% | score)
     # -------------------------------------------------------------------------
     t_qual = targets["response_quality"]
     qual_count = 0
     try:
         ds_sst = load_dataset('SetFit/sst5', split='train')
+        n_sst = len(ds_sst)
         sst_levels = ["1 - Very Poor", "2 - Poor", "3 - Acceptable", "4 - Good", "5 - Excellent"]
-        for idx, row in enumerate(ds_sst):
+        for idx in range(t_qual):
             if qual_count >= t_qual:
                 break
+            row = ds_sst[idx % n_sst]
             examples.append(DecisionExample(
-                id=f"resp_quality_{idx:06d}",
+                id=f"resp_quality_{qual_count:06d}",
                 context=row['text'],
                 question="Rate the helpfulness and quality of this customer service response:",
                 question_type=QuestionType.SCORE,
@@ -212,28 +222,30 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
         print(f"Warning in category 2 (Response Quality): {e}")
 
     # -------------------------------------------------------------------------
-    # 3. INFERENCE & FACT CHECKING (~10.4% | choice & noul)
+    # 3. INFERENCE & FACT CHECKING (~12.5% | choice & noul)
     # -------------------------------------------------------------------------
     t_inf = targets["inference_fact_check"]
     inf_count = 0
     xnli_langs = ['es', 'hi', 'ar', 'ru', 'zh', 'tr', 'vi', 'ur', 'sw']
     nli_opts = ["Entailment", "Neutral", "Contradiction"]
-    per_xnli = max(10, t_inf // len(xnli_langs))
+    per_xnli = max(10, (t_inf + len(xnli_langs) - 1) // len(xnli_langs))
     for lang in xnli_langs:
         if inf_count >= t_inf:
             break
         try:
             ds_xnli = load_dataset('facebook/xnli', lang, split='train')
+            n_xnli = len(ds_xnli)
             added = 0
-            for idx, row in enumerate(ds_xnli):
+            for idx in range(per_xnli * 2):
                 if added >= per_xnli or inf_count >= t_inf:
                     break
+                row = ds_xnli[idx % n_xnli]
                 raw_label = int(row['label'])
                 if raw_label not in (0, 1, 2):
                     continue
                 if idx % 2 == 0:
                     examples.append(DecisionExample(
-                        id=f"xnli_logic_{lang}_{idx:05d}",
+                        id=f"xnli_logic_{lang}_{inf_count:06d}",
                         context=row['premise'],
                         question=f"What is the logical relationship with: {row['hypothesis']}?",
                         question_type=QuestionType.CHOICE,
@@ -243,7 +255,7 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
                     ))
                 else:
                     examples.append(DecisionExample(
-                        id=f"xnli_bool_{lang}_{idx:05d}",
+                        id=f"xnli_bool_{lang}_{inf_count:06d}",
                         context=row['premise'],
                         question=f"Does this statement follow factually: {row['hypothesis']}?",
                         question_type=QuestionType.NOUL,
@@ -257,26 +269,30 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
             continue
 
     # -------------------------------------------------------------------------
-    # 4. MODERATION & SAFETY (~9.6% | choice)
+    # 4. MODERATION & SAFETY (~11.5% | choice)
     # -------------------------------------------------------------------------
     t_mod = targets["moderation_safety"]
     mod_count = 0
     try:
         ds_spam = load_dataset('dbarbedillo/SMS_Spam_Multilingual_Collection_Dataset', split='train')
+        n_spam = len(ds_spam)
         spam_langs = ['text', 'text_hi', 'text_es', 'text_ar', 'text_fr', 'text_de', 'text_ru', 'text_zh', 'text_mr', 'text_ur', 'text_bn']
-        per_spam_lang = max(10, t_mod // len(spam_langs))
+        per_spam_lang = max(10, (t_mod + len(spam_langs) - 1) // len(spam_langs))
         for col in spam_langs:
+            if mod_count >= t_mod:
+                break
             lang_code = col.replace('text_', '').replace('text', 'en')
             lang_c = 0
-            for idx, row in enumerate(ds_spam):
+            for idx in range(per_spam_lang * 2):
                 if lang_c >= per_spam_lang or mod_count >= t_mod:
                     break
+                row = ds_spam[idx % n_spam]
                 txt = row.get(col)
                 if not txt or not txt.strip():
                     continue
                 is_spam = 1 if row.get('labels') == 'spam' else 0
                 examples.append(DecisionExample(
-                    id=f"safety_spam_{lang_code}_{idx:05d}",
+                    id=f"safety_spam_{lang_code}_{mod_count:06d}",
                     context=txt.strip(),
                     question="What is the security classification of this message?",
                     question_type=QuestionType.CHOICE,
@@ -290,16 +306,18 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
         print(f"Warning in category 4 (Moderation & Safety): {e}")
 
     # -------------------------------------------------------------------------
-    # 5. EMAIL TRIAGE (~9.6% | choice)
+    # 5. EMAIL TRIAGE (~11.5% | choice)
     # -------------------------------------------------------------------------
     t_triage = targets["email_triage"]
     triage_count = 0
     try:
         ds_b77 = load_dataset('mteb/banking77', split='train')
+        n_b77 = len(ds_b77)
         triage_options = ["Track or locate order", "Request a refund", "Cancel subscription or service", "Report an issue or card problem"]
-        for idx, row in enumerate(ds_b77):
+        for idx in range(t_triage):
             if triage_count >= t_triage:
                 break
+            row = ds_b77[idx % n_b77]
             lbl = row.get('label_text', '')
             text = row.get('text', '')
             
@@ -313,7 +331,7 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
                 target_idx = 3
                 
             examples.append(DecisionExample(
-                id=f"email_triage_{idx:05d}",
+                id=f"email_triage_{triage_count:06d}",
                 context=text,
                 question="What is the customer's primary action request?",
                 question_type=QuestionType.CHOICE,
@@ -326,18 +344,20 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
         print(f"Warning in category 5 (Email Triage): {e}")
 
     # -------------------------------------------------------------------------
-    # 6. EMOTION & TONE (~6.4% | choice)
+    # 6. EMOTION & TONE (~7.7% | choice)
     # -------------------------------------------------------------------------
     t_emo = targets["emotion_tone"]
     emo_count = 0
     try:
         ds_emo = load_dataset('dair-ai/emotion', split='train')
+        n_emo = len(ds_emo)
         emo_labels = ["Sadness", "Joy", "Love", "Anger", "Fear", "Surprise"]
-        for idx, row in enumerate(ds_emo):
+        for idx in range(t_emo):
             if emo_count >= t_emo:
                 break
+            row = ds_emo[idx % n_emo]
             examples.append(DecisionExample(
-                id=f"emotion_{idx:05d}",
+                id=f"emotion_{emo_count:06d}",
                 context=row['text'],
                 question="What is the emotional tone of this customer message?",
                 question_type=QuestionType.CHOICE,
@@ -350,29 +370,31 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
         print(f"Warning in category 6 (Emotion & Tone): {e}")
 
     # -------------------------------------------------------------------------
-    # 7. INTENT & ROUTING (~5.6% | choice across world languages)
+    # 7. INTENT & ROUTING (~6.7% | choice across world languages)
     # -------------------------------------------------------------------------
     t_int = targets["intent_routing"]
     int_count = 0
     massive_configs = ['en-US', 'hi-IN', 'es-ES', 'ar-SA', 'fr-FR', 'de-DE', 'zh-CN']
     massive_domains = ["weather", "calendar", "alarm", "email", "music", "lists", "recommendation"]
-    per_massive = max(10, t_int // len(massive_configs))
+    per_massive = max(10, (t_int + len(massive_configs) - 1) // len(massive_configs))
     for m_cfg in massive_configs:
         if int_count >= t_int:
             break
         try:
             ds_m = load_dataset(f"SetFit/amazon_massive_intent_{m_cfg}", split='train')
+            n_m = len(ds_m)
             m_added = 0
-            for idx, row in enumerate(ds_m):
+            for idx in range(per_massive * 2):
                 if m_added >= per_massive or int_count >= t_int:
                     break
+                row = ds_m[idx % n_m]
                 raw_label = row.get('label_text', '')
                 domain = raw_label.split('_')[0] if '_' in raw_label else 'general'
                 if domain not in massive_domains:
                     continue
                 target_idx = massive_domains.index(domain)
                 examples.append(DecisionExample(
-                    id=f"intent_route_{m_cfg}_{idx:05d}",
+                    id=f"intent_route_{m_cfg}_{int_count:06d}",
                     context=row['text'],
                     question="Which tool or service should handle this user command?",
                     question_type=QuestionType.CHOICE,
@@ -386,18 +408,20 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
             continue
 
     # -------------------------------------------------------------------------
-    # 8. SENTIMENT & RATING (~4.0% | choice)
+    # 8. SENTIMENT & RATING (~4.8% | choice)
     # -------------------------------------------------------------------------
     t_sent = targets["sentiment_rating"]
     sent_count = 0
     try:
         ds_rt = load_dataset('cornell-movie-review-data/rotten_tomatoes', split='train')
+        n_rt = len(ds_rt)
         sent_opts = ["Negative Review", "Positive Review"]
-        for idx, row in enumerate(ds_rt):
+        for idx in range(t_sent):
             if sent_count >= t_sent:
                 break
+            row = ds_rt[idx % n_rt]
             examples.append(DecisionExample(
-                id=f"sent_rate_{idx:05d}",
+                id=f"sent_rate_{sent_count:06d}",
                 context=row['text'],
                 question="What is the overall sentiment of this review?",
                 question_type=QuestionType.CHOICE,
@@ -410,7 +434,7 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
         print(f"Warning in category 8 (Sentiment & Rating): {e}")
 
     # -------------------------------------------------------------------------
-    # 9. READING COMPREHENSION (~3.2% | choice across Belebele dialects)
+    # 9. READING COMPREHENSION (~3.8% | choice across Belebele dialects)
     # -------------------------------------------------------------------------
     t_rc = targets["reading_comprehension"]
     rc_count = 0
@@ -419,43 +443,50 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
         "deu_Latn", "fra_Latn", "jpn_Jpan", "kor_Hang", "por_Latn",
         "ita_Latn", "tam_Taml", "tel_Telu", "ben_Beng", "mar_Deva", "urd_Arab"
     ]
+    per_b = max(10, (t_rc + len(belebele_configs) - 1) // len(belebele_configs))
     for cfg in belebele_configs:
         if rc_count >= t_rc:
             break
         try:
             ds_b = load_dataset("facebook/belebele", cfg, split="test")
-            for idx, row in enumerate(ds_b):
-                if rc_count >= t_rc:
+            n_b = len(ds_b)
+            added_b = 0
+            for idx in range(per_b * 2):
+                if added_b >= per_b or rc_count >= t_rc:
                     break
+                row = ds_b[idx % n_b]
                 correct_ans = int(row['correct_answer_num']) - 1
                 if correct_ans not in (0, 1, 2, 3):
                     continue
                 examples.append(DecisionExample(
-                    id=f"rc_belebele_{row['dialect']}_{idx:04d}",
+                    id=f"rc_belebele_{row.get('dialect', cfg)}_{rc_count:06d}",
                     context=row['flores_passage'],
                     question=row['question'],
                     question_type=QuestionType.CHOICE,
                     options=[row['mc_answer1'], row['mc_answer2'], row['mc_answer3'], row['mc_answer4']],
                     target=correct_ans,
-                    metadata={'category': 'reading_comprehension', 'lang': row['dialect'], 'dataset': 'belebele'}
+                    metadata={'category': 'reading_comprehension', 'lang': row.get('dialect', cfg), 'dataset': 'belebele'}
                 ))
+                added_b += 1
                 rc_count += 1
         except Exception:
             continue
 
     # -------------------------------------------------------------------------
-    # 10. TOPIC CLASSIFICATION (~3.2% | choice)
+    # 10. TOPIC CLASSIFICATION (~3.8% | choice)
     # -------------------------------------------------------------------------
     t_top = targets["topic_classification"]
     top_count = 0
     try:
         ds_ag = load_dataset('SetFit/ag_news', split='train')
+        n_ag = len(ds_ag)
         ag_topics = ["World Affairs", "Sports & Athletics", "Commerce & Business", "Technology & Science"]
-        for idx, row in enumerate(ds_ag):
+        for idx in range(t_top):
             if top_count >= t_top:
                 break
+            row = ds_ag[idx % n_ag]
             examples.append(DecisionExample(
-                id=f"topic_class_{idx:05d}",
+                id=f"topic_class_{top_count:06d}",
                 context=row['text'],
                 question="What primary domain does this report belong to?",
                 question_type=QuestionType.CHOICE,
@@ -468,7 +499,7 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
         print(f"Warning in category 10 (Topic Classification): {e}")
 
     # -------------------------------------------------------------------------
-    # 11. ROBUSTNESS CHECKS (~2.8% | choice)
+    # 11. ROBUSTNESS CHECKS (~3.4% | choice)
     # -------------------------------------------------------------------------
     t_rob = targets["robustness_checks"]
     rob_count = 0
@@ -485,7 +516,7 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
         if rob_count >= t_rob:
             break
         examples.append(DecisionExample(
-            id=f"robustness_{idx:05d}",
+            id=f"robustness_{rob_count:06d}",
             context=txt,
             question="Determine whether this message is authentic or suspicious:",
             question_type=QuestionType.CHOICE,
@@ -496,7 +527,7 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
         rob_count += 1
 
     # -------------------------------------------------------------------------
-    # 12. SEARCH RELEVANCE (~2.8% | noul)
+    # 12. SEARCH RELEVANCE (~3.4% | noul)
     # -------------------------------------------------------------------------
     t_sr = targets["search_relevance"]
     sr_count = 0
@@ -512,7 +543,7 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
         if sr_count >= t_sr:
             break
         examples.append(DecisionExample(
-            id=f"search_rel_{idx:05d}",
+            id=f"search_rel_{sr_count:06d}",
             context=doc,
             question=f"Is this document directly relevant to the search query: '{q_text}'?",
             question_type=QuestionType.NOUL,
@@ -523,7 +554,7 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
         sr_count += 1
 
     # -------------------------------------------------------------------------
-    # 13. INSTRUCTION-FOLLOWING (~2.4% | noul)
+    # 13. INSTRUCTION-FOLLOWING (~3.0% | noul)
     # -------------------------------------------------------------------------
     t_if = targets["instruction_following"]
     if_count = 0
@@ -539,7 +570,7 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
         if if_count >= t_if:
             break
         examples.append(DecisionExample(
-            id=f"instruct_follow_{idx:05d}",
+            id=f"instruct_follow_{if_count:06d}",
             context=statement,
             question=f"Does this content comply with the rule: '{rule}'?",
             question_type=QuestionType.NOUL,
@@ -548,6 +579,43 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
             metadata={'category': 'instruction_following'}
         ))
         if_count += 1
+
+    # -------------------------------------------------------------------------
+    # DYNAMIC SPILLOVER SAFETY NET
+    # -------------------------------------------------------------------------
+    # If any dataset failed to load (network/timeout) or if there is any remaining
+    # shortfall, top up from high-capacity multilingual reasoning sources (XNLI).
+    if limit > 0 and len(examples) < limit:
+        shortfall = limit - len(examples)
+        print(f"\n[Spillover] Shortfall of {shortfall:,} samples detected. Topping up from multilingual reasoning (XNLI)...")
+        xnli_fallback_langs = ['es', 'ar', 'hi', 'ru', 'zh', 'fr', 'de', 'vi', 'ur']
+        per_fb = max(10, (shortfall + len(xnli_fallback_langs) - 1) // len(xnli_fallback_langs))
+        for lang in xnli_fallback_langs:
+            if len(examples) >= limit:
+                break
+            try:
+                ds_fb = load_dataset('facebook/xnli', lang, split='train')
+                n_fb = len(ds_fb)
+                added_fb = 0
+                for idx in range(per_fb * 2):
+                    if added_fb >= per_fb or len(examples) >= limit:
+                        break
+                    row = ds_fb[(idx + 25000) % n_fb]
+                    raw_lbl = int(row['label'])
+                    if raw_lbl not in (0, 1, 2):
+                        continue
+                    examples.append(DecisionExample(
+                        id=f"spillover_xnli_{lang}_{len(examples):06d}",
+                        context=row['premise'],
+                        question=f"What is the logical relationship with: {row['hypothesis']}?",
+                        question_type=QuestionType.CHOICE,
+                        options=["Entailment", "Neutral", "Contradiction"],
+                        target=raw_lbl,
+                        metadata={'category': 'inference_fact_check', 'lang': lang, 'dataset': 'xnli_spillover'}
+                    ))
+                    added_fb += 1
+            except Exception:
+                continue
 
     print(f"\nSuccessfully gathered {len(examples):,} total examples across 13 task families.")
     from collections import Counter
