@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zesyde"
+version = "1.0.0"
+description = "Calibrated, Non-Autoregressive Decision & Routing Foundation Models"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "torch",
+    "transformers",
+    "datasets",
+    "accelerate",
+    "scikit-learn",
+    "scipy",
+    "pydantic>=2.0",
+    "numpy",
+    "tqdm",
+    "onnx",
+    "onnxruntime",
+    "onnxscript",
+    "fastapi",
+    "uvicorn",
+    "peft",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning:torch.onnx.*",
+    "ignore::torch.jit.TracerWarning",
+    "ignore:.*legacy TorchScript-based ONNX export.*:DeprecationWarning",
+    "ignore:.*Exporting aten..index operator.*:UserWarning",
+    "ignore:.*The feature will be removed. Please remove usage of this function.*:DeprecationWarning",
+]
+

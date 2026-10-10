@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zesyde API | Production Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --panel-border: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent: #ff6c37;
+            --accent-hover: #ff8559;
+            --radius: 12px;
+            --radius-sm: 6px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        ::selection {
+            background-color: rgba(255, 108, 55, 0.3);
+            color: #ffffff;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            caret-color: var(--accent);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Top Header */
+        header {
+            padding: 1.5rem 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--panel-border);
+            background: var(--bg-color);
+            z-index: 10;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 108, 55, 0.25);
+        }
+
+        @keyframes pulse-logo {
+            0% { box-shadow: 0 0 20px rgba(255,108,55,0.4); }
+            100% { box-shadow: 0 0 35px rgba(255,31,31,0.6); }
+        }
+
+        h1 {
+            font-size: 1.35rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.03);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #22c55e;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        /* Main Grid */
+        main {
+            display: grid;
+            grid-template-columns: 1fr 1.3fr;
+            gap: 2.5rem;
+            padding: 2.5rem 3rem;
+            flex: 1;
+            overflow: hidden;
+            max-width: 1700px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            transition: var(--transition);
+        }
+
+        .panel-header {
+            padding: 1.25rem 1.75rem;
+            border-bottom: 1px solid var(--panel-border);
+            background: var(--panel-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-body {
+            padding: 2rem;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
+        }
+
+        .panel-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        .panel-body::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            position: relative;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        input, textarea {
+            width: 100%;
+            background: #010409;
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 0.875rem 1rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: var(--transition);
+            outline: none;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        input:hover, textarea:hover {
+            border-color: #8b949e;
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(255, 108, 55, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            line-height: 1.6;
+        }
+
+        .char-count {
+            position: absolute;
+            right: 0;
+            top: 0;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Dynamic Options */
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .option-item {
+            display: flex;
+            gap: 0.75rem;
+            animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-15px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: 1px solid var(--panel-border);
+            color: var(--text-muted);
+            width: 44px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            transition: var(--transition);
+        }
+
+        .btn-icon:hover, .btn-icon:focus-visible {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.3);
+            outline: none;
+        }
+
+        .btn-icon:focus-visible {
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px dashed var(--panel-border);
+            color: var(--text-muted);
+            padding: 0.875rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            width: 100%;
+        }
+
+        .btn-secondary:hover, .btn-secondary:focus-visible {
+            color: var(--text-main);
+            border-color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.02);
+            outline: none;
+        }
+        
+        .btn-secondary:focus-visible {
+            box-shadow: 0 0 0 3px rgba(139, 148, 158, 0.2);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 1.1rem;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-top: auto;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary:hover, .btn-primary:focus-visible {
+            background: var(--accent-hover);
+            outline: none;
+        }
+        
+        .btn-primary:focus-visible {
+            box-shadow: 0 0 0 3px rgba(255, 108, 55, 0.4);
+        }
+
+        /* Response Code View */
+        .code-container {
+            font-family: 'JetBrains Mono', monospace;
+            background: #010409;
+            border-top: 1px solid var(--panel-border);
+            padding: 1.5rem 1.75rem;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            overflow: auto;
+            flex: 1;
+            color: var(--text-main);
+            position: relative;
+            white-space: pre-wrap;
+            tab-size: 4;
+        }
+
+        .code-container::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        .code-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .code-container::-webkit-scrollbar-thumb {
+            background: var(--panel-border);
+            border: 2px solid #010409;
+            border-radius: 5px;
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            background: var(--bg-color);
+            color: var(--text-muted);
+            border: 1px solid var(--panel-border);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-success {
+            color: #3fb950;
+            border-color: rgba(63, 185, 80, 0.4);
+        }
+
+        .status-error {
+            color: #f85149;
+            border-color: rgba(248, 81, 73, 0.4);
+        }
+
+        /* Syntax Highlighting */
+        .json-key { color: #7ee787; font-weight: 500; }
+        .json-string { color: #a5d6ff; }
+        .json-number { color: #79c0ff; }
+        .json-boolean { color: #ff7b72; }
+        
+        .loader {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1024px) {
+            main { grid-template-columns: 1fr; overflow-y: auto; padding: 1.5rem; gap: 1.5rem; }
+            .panel { min-height: 500px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-brand">
+            <div class="logo-box">Z</div>
+            <div>
+                <h1>Zesyde API</h1>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; font-weight: 300;">Zero-Shot Multilingual Router</p>
+            </div>
+        </div>
+        <div class="header-status">
+            <div class="pulse-dot"></div>
+            <span>System Operational</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- Request Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    Request Payload
+                </h2>
+            </div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label for="contextInput">Context</label>
+                    <span class="char-count" id="contextCount">0 / 50000</span>
+                    <textarea id="contextInput" maxlength="50000" placeholder="Enter text to route..." oninput="updateCount('contextInput', 'contextCount')">El nuevo smartphone es increíble, la batería dura tres días seguidos.</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="questionInput">Question</label>
+                    <span class="char-count" id="questionCount">0 / 5000</span>
+                    <input type="text" id="questionInput" maxlength="5000" value="What is the sentiment?" oninput="updateCount('questionInput', 'questionCount')">
+                </div>
+
+                <div class="form-group">
+                    <label>Candidate Options</label>
+                    <div class="options-list" id="optionsList">
+                        <div class="option-item">
+                            <input type="text" value="Negative" class="option-input">
+                            <button class="btn-icon" onclick="this.parentElement.remove()" title="Remove option">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                        <div class="option-item">
+                            <input type="text" value="Positive" class="option-input">
+                            <button class="btn-icon" onclick="this.parentElement.remove()" title="Remove option">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn-secondary" onclick="addOption()">+ Add Option</button>
+                </div>
+
+                <button class="btn-primary" onclick="sendRequest()">
+                    <span id="btnText">Execute Decision</span>
+                    <div class="loader" id="loader"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Response Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                    Execution Response
+                </h2>
+                <div class="status-badge" id="statusBadge">AWAITING REQUEST</div>
+            </div>
+            <div class="panel-body" style="padding: 0; gap: 0;">
+                <div class="code-container" id="responseBody">
+<span style="color: rgba(255,255,255,0.2)">// System ready. Awaiting inference payload...</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function updateCount(inputId, countId) {
+            const input = document.getElementById(inputId);
+            const count = document.getElementById(countId);
+            count.textContent = `${input.value.length} / 1000`;
+        }
+
+        // Initialize counts
+        updateCount('contextInput', 'contextCount');
+        updateCount('questionInput', 'questionCount');
+
+        function addOption() {
+            const list = document.getElementById('optionsList');
+            const items = list.querySelectorAll('.option-item');
+            if (items.length >= 10) {
+                alert("Maximum of 10 options allowed.");
+                return;
+            }
+            
+            const div = document.createElement('div');
+            div.className = 'option-item';
+            div.innerHTML = `
+                <input type="text" placeholder="Enter new option..." class="option-input">
+                <button class="btn-icon" onclick="this.parentElement.remove()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                </button>
+            `;
+            list.appendChild(div);
+            div.querySelector('input').focus();
+        }
+
+        function highlightJSON(json) {
+            if (typeof json !== 'string') {
+                json = JSON.stringify(json, null, 4);
+            }
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-boolean';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        async function sendRequest() {
+            const btnText = document.getElementById('btnText');
+            const loader = document.getElementById('loader');
+            const statusBadge = document.getElementById('statusBadge');
+            const responseBody = document.getElementById('responseBody');
+
+            const optionInputs = document.querySelectorAll('.option-input');
+            const options = Array.from(optionInputs).map(i => i.value).filter(v => v.trim() !== '');
+
+            if (options.length < 2) {
+                alert("Please provide at least 2 options for the model to decide between.");
+                return;
+            }
+
+            const payload = {
+                context: document.getElementById('contextInput').value,
+                question: document.getElementById('questionInput').value,
+                options: options
+            };
+
+            btnText.style.display = 'none';
+            loader.style.display = 'block';
+            statusBadge.className = 'status-badge';
+            statusBadge.textContent = 'ROUTING...';
+            responseBody.innerHTML = `<span style="color: var(--text-muted); opacity: 0.5;">// Initiating inference via Multilingual Backbone...</span>`;
+
+            try {
+                const response = await fetch('/decide', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusBadge.className = 'status-badge status-success';
+                    statusBadge.textContent = `200 OK — ${data.latency_ms?.toFixed(2) || 'N/A'}ms`;
+                } else {
+                    statusBadge.className = 'status-badge status-error';
+                    statusBadge.textContent = `${response.status} ERROR`;
+                }
+
+                responseBody.innerHTML = highlightJSON(data);
+
+            } catch (error) {
+                statusBadge.className = 'status-badge status-error';
+                statusBadge.textContent = 'NETWORK FAULT';
+                responseBody.innerHTML = `<span style="color: #fca5a5">${error.message}</span>`;
+            } finally {
+                btnText.style.display = 'inline';
+                loader.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
