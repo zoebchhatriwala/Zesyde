@@ -162,7 +162,7 @@ class LanguageRouter:
         options: List[str],
         question: str = 'Select the best option:',
         question_type: Union[QuestionType, str] = 'choice',
-        escalation_threshold: float = 0.5,
+        escalation_threshold: float = 0.10,
         force_language: Optional[str] = None
     ) -> MultilingualDecisionResult:
         t0 = time.perf_counter()

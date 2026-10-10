@@ -273,11 +273,27 @@ def build_mixed_train(limit: int = 1000, multilingual: bool = False) -> List[Dec
     # -------------------------------------------------------------------------
     t_mod = targets["moderation_safety"]
     mod_count = 0
+
+    # 4a. Real Multilingual Transactional & Phishing Emails (50% of category)
+    try:
+        from zesyde.email_spam_data import load_real_spam_ham_dataset
+        email_mod_target = t_mod // 2
+        email_examples = load_real_spam_ham_dataset(limit=email_mod_target, seed=42)
+        for ex in email_examples:
+            if mod_count >= t_mod:
+                break
+            examples.append(ex)
+            mod_count += 1
+    except Exception as e:
+        print(f"Warning loading real email spam dataset in Category 4: {e}")
+
+    # 4b. SMS Spam Collection (remaining 50% of category)
     try:
         ds_spam = load_dataset('dbarbedillo/SMS_Spam_Multilingual_Collection_Dataset', split='train')
         n_spam = len(ds_spam)
         spam_langs = ['text', 'text_hi', 'text_es', 'text_ar', 'text_fr', 'text_de', 'text_ru', 'text_zh', 'text_mr', 'text_ur', 'text_bn']
-        per_spam_lang = max(10, (t_mod + len(spam_langs) - 1) // len(spam_langs))
+        remaining_mod = t_mod - mod_count
+        per_spam_lang = max(10, (remaining_mod + len(spam_langs) - 1) // len(spam_langs))
         for col in spam_langs:
             if mod_count >= t_mod:
                 break

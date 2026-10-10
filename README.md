@@ -59,22 +59,23 @@ Instead of generating text token-by-token with massive generative LLMs, Zesyde s
 
 ## 📊 Benchmark & Evaluation Results
 
-Evaluated on held-out test splits after full 128K multi-task training with Regularized Log-Loss Calibration Distillation (RLCD):
+Evaluated on held-out test splits after full 150K multi-task multilingual training with Regularized Log-Loss Calibration Distillation (RLCD):
 
 | Benchmark / Task | Language & Primitive | Accuracy | Expected Calibration Error (ECE) | Brier Score |
 | :--- | :--- | :---: | :---: | :---: |
-| **`belebele_es`** | Spanish (4-way QA) | **`99.5%`** | **`0.0031`** *(0.3%)* | **`0.0105`** |
-| **`belebele_ar`** | Arabic (4-way QA) | **`98.0%`** | **`0.0143`** *(1.4%)* | **`0.0352`** |
-| **`belebele_hi`** | Hindi (4-way QA) | **`94.0%`** | **`0.0576`** *(5.7%)* | **`0.1089`** |
-| **`xnli_de`** | German (Boolean NLI) | **`83.5%`** | **`0.0464`** *(4.6%)* | **`0.2603`** |
-| **`xnli_fr`** | French (3-way NLI) | **`73.0%`** | **`0.0589`** *(5.8%)* | **`0.3809`** |
-| **OVERALL AGGREGATE** | **Cross-Lingual Held-Out** | **`89.6%`** | **`0.0243`** *(2.4%)* | **`0.1592`** |
+| **`belebele_es`** | Spanish (4-way QA) | **`89.0%`** | **`0.0447`** *(4.5%)* | **`0.1608`** |
+| **`belebele_ar`** | Arabic (4-way QA) | **`83.5%`** | **`0.0342`** *(3.4%)* | **`0.2362`** |
+| **`belebele_hi`** | Hindi (4-way QA) | **`73.5%`** | **`0.0786`** *(7.9%)* | **`0.3452`** |
+| **`xnli_de`** | German (Boolean NLI) | **`87.0%`** | **`0.0577`** *(5.8%)* | **`0.2153`** |
+| **`xnli_fr`** | French (3-way NLI) | **`79.0%`** | **`0.0881`** *(8.8%)* | **`0.3259`** |
+| **OVERALL AGGREGATE** | **Cross-Lingual Held-Out** | **`82.4%`** | **`0.0188`** *(1.9%)* | **`0.2567`** |
 
 ### Verified Post-Hoc Calibration Temperatures
 Fitted via strictly proper scoring rules on independent held-out calibration partitions:
-* $T[\text{choice} \mid K=4] = \mathbf{0.5996}$
-* $T[\text{choice} \mid K=3] = \mathbf{1.4420}$
-* $T[\text{noul} \mid K=2] = \mathbf{1.2106}$
+* $T[\text{choice} \mid K=4] = \mathbf{0.8528}$
+* $T[\text{choice} \mid K=3] = \mathbf{1.8290}$
+* $T[\text{noul} \mid K=2] = \mathbf{1.0408}$
+* $T[\text{default}] = \mathbf{1.0000}$
 
 *All temperature scaling factors are closely grouped around 1.0, proving natural calibration without logit explosion or collapse.*
 

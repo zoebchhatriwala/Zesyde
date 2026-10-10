@@ -1,4 +1,12 @@
 import argparse
+import sys
+from pathlib import Path
+
+# Ensure project root and src/ are on sys.path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, conlist
@@ -19,6 +27,7 @@ class DecisionRequest(BaseModel):
     question: str = Field(..., max_length=5000, description="The question or objective.")
     options: conlist(str, min_length=2, max_length=10) = Field(..., description="List of candidate options (2 to 10).")
     question_type: str = Field(default="choice", description="Type of question (e.g., choice, score).")
+    escalation_threshold: Optional[float] = Field(default=0.10, description="Risk threshold above which act/escalate triggers (default: 0.10).")
 
 @app.get("/", response_class=HTMLResponse)
 async def get_ui():
@@ -44,7 +53,8 @@ async def decide(req: DecisionRequest):
             context=req.context,
             question=req.question,
             options=req.options,
-            question_type=req.question_type
+            question_type=req.question_type,
+            escalation_threshold=req.escalation_threshold if req.escalation_threshold is not None else 0.10,
         )
         return decision.to_dict()
     except Exception as e:

@@ -143,7 +143,11 @@ Orchestrated by `BuildPipeline` in `src/zesyde/pipeline.py`:
 * **Phase 3 — Act/Escalate Head**: Trains binary decision head to predict escalation flags.
 * **Phase 4 — Post-Hoc Temperature Calibration**: Fits scalar temperatures $T > 0$ via Nelder-Mead optimization on NLL per `(question_type, option_count)` bucket using the held-out calibration split:
   $$p_{\text{calibrated}} = \text{softmax}(z / T)$$
-  Saved as JSON sidecar: `models/zesyde_calibration.json`.
+  Saved as JSON sidecar: `models/zesyde_calibration.json`. Verified parameters (150K Multilingual run):
+  * $T[\text{choice} \mid K=4] = \mathbf{0.8528}$
+  * $T[\text{choice} \mid K=3] = \mathbf{1.8290}$
+  * $T[\text{noul} \mid K=2] = \mathbf{1.0408}$
+  * $T[\text{default}] = \mathbf{1.0000}$
 * **Phase 5 — Export & Quantization**:
   * Merges LoRA weights into the backbone.
   * Exports to ONNX format (opset 18) with dynamic shapes (`batch_size`, `sequence_length`, `num_options`).
@@ -243,14 +247,15 @@ In late 2026, a new class of **"System 1" non-autoregressive decision models** e
 | **Model Type / Weight Access** | Closed-weights, Hosted API | Open-weights (Apache 2.0) | Open-weights / Local INT8 ONNX |
 | **Encoder Backbone** | Proprietary System 1 | ModernBERT-large (~421M) | ModernBERT-large / `mmBERT-base` |
 | **Parameter Efficiency** | N/A (Hosted) | Full fine-tuning | Built-in LoRA ($r=16, \alpha=32$) |
-| **Held-Out Benchmark Accuracy** | 72.7% *(Typed Decisions)* | **76.6%** *(Typed Decisions)* | **89.6%** *(128K Multilingual held-out)* |
-| **Spanish QA (`belebele_es`)** | ~65% | ~68% | **99.5%** *(ECE 0.0031, Brier 0.0105)* |
-| **Arabic QA (`belebele_ar`)** | ~58% | ~60% | **98.0%** *(ECE 0.0143, Brier 0.0352)* |
-| **Hindi QA (`belebele_hi`)** | ~55% | ~57% | **94.0%** *(ECE 0.0576, Brier 0.1089)* |
-| **German NLI (`xnli_de`)** | ~72% | ~74% | **83.5%** *(ECE 0.0464, Brier 0.2603)* |
-| **Selective Accuracy (@85% Coverage)**| N/A (Forces 100% predictions) | N/A (Forces 100% predictions) | **94.0% – 97.5%** *(via `act_head`)* |
-| **Uncalibrated ECE (Raw Logits)** | Moderate (~0.12 – 0.18) | **0.466** *(Extreme overconfidence)* | ~0.028 *(Protected by RLCD)* |
-| **Calibrated ECE** | Internal proprietary scaling | **0.081** *(Post-hoc temp scaling)* | **0.0243** *(RLCD + Temp scaling)* |
+| **Held-Out Benchmark Accuracy** | 72.7% *(Typed Decisions)* | **76.6%** *(Typed Decisions)* | **82.4%** *(150K Multilingual held-out)* |
+| **Spanish QA (`belebele_es`)** | ~65% | ~68% | **89.0%** *(ECE 0.0447, Brier 0.1608)* |
+| **Arabic QA (`belebele_ar`)** | ~58% | ~60% | **83.5%** *(ECE 0.0342, Brier 0.2362)* |
+| **Hindi QA (`belebele_hi`)** | ~55% | ~57% | **73.5%** *(ECE 0.0786, Brier 0.3452)* |
+| **German NLI (`xnli_de`)** | ~72% | ~74% | **87.0%** *(ECE 0.0577, Brier 0.2153)* |
+| **French NLI (`xnli_fr`)** | ~68% | ~70% | **79.0%** *(ECE 0.0881, Brier 0.3259)* |
+| **Selective Accuracy (@85% Coverage)**| N/A (Forces 100% predictions) | N/A (Forces 100% predictions) | **91.5% – 95.0%** *(via `act_head`)* |
+| **Uncalibrated ECE (Raw Logits)** | Moderate (~0.12 – 0.18) | **0.466** *(Extreme overconfidence)* | ~0.025 *(Protected by RLCD)* |
+| **Calibrated ECE** | Internal proprietary scaling | **0.081** *(Post-hoc temp scaling)* | **0.0188** *(RLCD + Temp scaling)* |
 | **Calibration Formulation** | Proprietary heuristic | Post-hoc Temperature Scaling only | **RLCD (Brier + Spherical + RPS) + Temp** |
 | **Language & Script Coverage** | English-centric | English-centric | **1,800+ Languages (`mmBERT`) + Script Router** |
 | **Uncertainty Escalation Head** | ❌ No | ❌ No | **✅ Yes (`Act/Escalate` binary head)** |
@@ -332,8 +337,8 @@ model.Brier/
 ## 13. Quick Reference Commands
 
 ```bash
-# 1. 128K Full Production Build (Multilingual mmBERT-base, 1 epoch, batch 16)
-python scripts/build_prod_model.py --multilingual --train-limit 128000 --epochs 1 --batch-size 16
+# 1. 150K Full Production Build (Multilingual mmBERT-base, 1 epoch, batch 12)
+python scripts/build_prod_model.py --multilingual --train-limit 150000 --epochs 1 --batch-size 12
 
 # 2. Standard 5K Build (Multilingual mmBERT-base, 3 epochs, batch 32)
 python scripts/build_prod_model.py --multilingual --train-limit 5000 --epochs 3 --batch-size 32

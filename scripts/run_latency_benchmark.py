@@ -3,7 +3,14 @@
 Benchmarks batch-1 inference latency across INT8 and FP32 ONNX sessions.
 """
 import argparse
+import sys
 from pathlib import Path
+
+# Ensure project root and src/ are on sys.path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
 import numpy as np
 from zesyde.pipeline_utils import build_ort_session, benchmark_latency
 

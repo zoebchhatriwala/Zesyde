@@ -206,7 +206,7 @@ class ZesydeRouter:
         options: List[str],
         question: str = "Select the best option:",
         question_type: Union[QuestionType, str] = "choice",
-        escalation_threshold: float = 0.5,
+        escalation_threshold: float = 0.10,
     ) -> DecisionResult:
         """Executes a calibrated routing decision in ~11ms.
         
@@ -215,7 +215,7 @@ class ZesydeRouter:
             options: List of 2 to 64 candidate strings.
             question: Prompt framing (default: 'Select the best option:').
             question_type: 'choice' (categorical), 'noul' (null fallback), or 'score' (ordinal).
-            escalation_threshold: Probability threshold above which act/escalate triggers.
+            escalation_threshold: Probability threshold above which act/escalate triggers (default: 0.10).
             
         Returns:
             DecisionResult with calibrated probabilities and escalation status.
