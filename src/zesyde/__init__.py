@@ -8,7 +8,7 @@ from zesyde.router import ZesydeRouter, DecisionResult
 from zesyde.lang_router import LanguageRouter, MultilingualDecisionResult
 from zesyde.checkpoint import PauseController, TrainingInterruptedException
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 __all__ = [
     '__version__',

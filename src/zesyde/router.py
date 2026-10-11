@@ -97,9 +97,30 @@ class ZesydeRouter:
         if p.is_file():
             model_dir = p.parent
             direct_file = p
-        else:
+        elif p.is_dir():
             model_dir = p
             direct_file = None
+        else:
+            # Attempt to download from Hugging Face Hub if not found locally
+            try:
+                from huggingface_hub import snapshot_download
+                repo_id_str = str(model_dir_or_path).strip()
+                downloaded_dir = snapshot_download(
+                    repo_id=repo_id_str,
+                    allow_patterns=["*.onnx", "*.json", "*tokenizer*", "*.txt", "*.model"]
+                )
+                model_dir = Path(downloaded_dir)
+                direct_file = None
+            except Exception as e_hf:
+                try:
+                    from huggingface_hub import snapshot_download
+                    downloaded_dir = snapshot_download(repo_id=str(model_dir_or_path).strip())
+                    model_dir = Path(downloaded_dir)
+                    direct_file = None
+                except Exception:
+                    raise FileNotFoundError(
+                        f"Model path '{model_dir_or_path}' does not exist locally and failed to download from Hugging Face Hub: {e_hf}"
+                    )
 
         # Set up CPU session options (4 intra-op threads is optimal)
         sess_opts = ort.SessionOptions()
@@ -113,6 +134,8 @@ class ZesydeRouter:
             model_dir / "zesyde_prod_fp32.onnx",
             model_dir / "onnx" / "zesyde_prod_fp32.onnx",
             model_dir / "onnx" / "model_fp32.onnx",
+            model_dir / "model_fp32.onnx",
+            model_dir / "model.onnx",
         ]
         if direct_file and "fp32" in direct_file.name.lower():
             fp32_candidates.insert(0, direct_file)
@@ -132,6 +155,8 @@ class ZesydeRouter:
             model_dir / "zesyde_prod_int8.onnx",
             model_dir / "onnx" / "zesyde_prod_int8.onnx",
             model_dir / "onnx" / "model_int8.onnx",
+            model_dir / "model_int8.onnx",
+            model_dir / "model_quantized.onnx",
         ]
         if direct_file and "int8" in direct_file.name.lower():
             int8_candidates.insert(0, direct_file)
@@ -164,7 +189,7 @@ class ZesydeRouter:
                 temperatures = {}
 
         # Load tokenizer
-        if (model_dir / "tokenizer.json").exists():
+        if (model_dir / "tokenizer.json").exists() or (model_dir / "tokenizer_config.json").exists():
             tok_source = str(model_dir)
         elif tokenizer_name is not None:
             tok_source = tokenizer_name

@@ -126,20 +126,28 @@ class LanguageRouter:
         default_key: str = 'multilingual'
     ) -> 'LanguageRouter':
         routers = {}
-        if en_path and Path(en_path).exists():
-            routers['en'] = ZesydeRouter.from_pretrained(
-                en_path, tokenizer_name=tokenizer_name, max_length=max_length, prefer_fp32=prefer_fp32
-            )
-        if multilingual_path and Path(multilingual_path).exists():
-            routers['multilingual'] = ZesydeRouter.from_pretrained(
-                multilingual_path, tokenizer_name=tokenizer_name, max_length=max_length, prefer_fp32=prefer_fp32
-            )
+        if en_path:
+            try:
+                routers['en'] = ZesydeRouter.from_pretrained(
+                    en_path, tokenizer_name=tokenizer_name, max_length=max_length, prefer_fp32=prefer_fp32
+                )
+            except Exception:
+                pass
+        if multilingual_path:
+            try:
+                routers['multilingual'] = ZesydeRouter.from_pretrained(
+                    multilingual_path, tokenizer_name=tokenizer_name, max_length=max_length, prefer_fp32=prefer_fp32
+                )
+            except Exception:
+                pass
         if custom_routers:
             for key, path in custom_routers.items():
-                if Path(path).exists():
+                try:
                     routers[key] = ZesydeRouter.from_pretrained(
                         path, tokenizer_name=tokenizer_name, max_length=max_length, prefer_fp32=prefer_fp32
                     )
+                except Exception:
+                    pass
         if not routers:
             raise FileNotFoundError('No valid model checkpoints found to initialize LanguageRouter.')
         return cls(default_router_key=default_key, routers=routers)

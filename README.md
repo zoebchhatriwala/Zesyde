@@ -34,7 +34,8 @@ pipeline_tag: text-classification
 
 # Zesyde: Calibrated, Non-Autoregressive Decision & Routing Foundation Model
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](pyproject.toml)
+[![PyPI version](https://img.shields.io/pypi/v/zesyde.svg)](https://pypi.org/project/zesyde/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Latency](https://img.shields.io/badge/Latency-12--35ms_CPU-brightgreen.svg)]()
 [![Model Size](https://img.shields.io/badge/ONNX_INT8-318MB-success.svg)]()
@@ -86,7 +87,17 @@ Fitted via strictly proper scoring rules on independent held-out calibration par
 
 ### Installation
 
+Install via PyPI:
+
 ```bash
+pip install zesyde
+```
+
+Or install from source for development:
+
+```bash
+git clone https://github.com/zoebchhatriwala/Zesyde.git
+cd Zesyde
 pip install -e .
 ```
 
@@ -95,8 +106,8 @@ pip install -e .
 ```python
 from zesyde.router import ZesydeRouter
 
-# Load calibrated INT8 ONNX engine (or omit prefer_fp32 for FP32)
-router = ZesydeRouter.from_pretrained("models", prefer_fp32=False, max_length=1024)
+# Load directly from Hugging Face Hub (or local directory "models")
+router = ZesydeRouter.from_pretrained("zoebchhatriwala/Zesyde-150M-Multilingual-Router", prefer_fp32=False)
 
 # Make a calibrated, fast routing decision
 result = router.decide(
@@ -154,6 +165,167 @@ curl -X POST http://localhost:8000/decide \
     "options": ["Negative", "Neutral", "Positive"]
   }'
 ```
+
+---
+
+## 💻 Developer & Integration Guide
+
+This guide walks you through building applications, AI agents, and production services using Zesyde.
+
+### 1. Acquiring Model Weights
+
+Zesyde models can be loaded directly from Hugging Face Hub or pre-downloaded locally:
+
+* **Automatic Download (Recommended)**: Pass the Hugging Face repo ID directly to `from_pretrained()`:
+  ```python
+  router = ZesydeRouter.from_pretrained("zoebchhatriwala/Zesyde-150M-Multilingual-Router")
+  ```
+  This automatically downloads, verifies, and caches the ONNX models and calibration factors in your local Hugging Face cache.
+
+* **Manual Download (Air-gapped / Offline)**:
+  ```bash
+  pip install huggingface_hub
+  huggingface-cli download zoebchhatriwala/Zesyde-150M-Multilingual-Router --local-dir models/
+  ```
+  Then initialize pointing to your local directory:
+  ```python
+  router = ZesydeRouter.from_pretrained("models")
+  ```
+
+---
+
+### 2. Core API Reference
+
+#### Initializing the Router
+
+```python
+from zesyde.router import ZesydeRouter
+
+router = ZesydeRouter.from_pretrained(
+    model_dir_or_path="models",  # Path containing ONNX graphs and calibration JSON
+    prefer_fp32=False,           # False uses INT8 (~12ms CPU latency, 318MB RAM)
+    max_length=8192,             # Architectural context window (supports up to 8k tokens)
+    precision_routing=True       # Dynamically routes ordinal 'score' queries to FP32 if available
+)
+```
+
+#### Making Decisions: `router.decide()`
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `context` | `str` | *required* | The prompt, user message, or document context (up to 8,192 tokens). |
+| `options` | `List[str]` | *required* | Candidate choices (2 to 20 arbitrary options dynamically scored). |
+| `question` | `str` | `"Select the best option:"` | The decision question or routing objective. |
+| `question_type` | `str` | `"choice"` | Decision primitive: `'choice'` (multi-class), `'noul'` (boolean), or `'score'` (ordinal). |
+| `escalation_threshold`| `float` | `0.10` | Binary risk threshold above which `should_escalate` triggers. |
+
+#### Decision Output: `DecisionResult`
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `selected_option` | `str` | The winning candidate option. |
+| `confidence` | `float` | Mathematically calibrated probability ($0.0 \dots 1.0$) with Expected Calibration Error $< 2.5\%$. |
+| `probabilities` | `Dict[str, float]` | Full probability distribution across all provided candidate options. |
+| `should_escalate` | `bool` | True if ambiguity/risk exceeds `escalation_threshold`. |
+| `escalate_probability`| `float` | Raw scalar probability of epistemic risk predicted by the `Act/Escalate` head. |
+| `latency_ms` | `float` | Inference latency in milliseconds (typically 12–35ms on CPU). |
+
+---
+
+### 3. Developer Recipes & Design Patterns
+
+#### Recipe A: AI Agent Fast Tool Selection (LangChain / LlamaIndex / Custom)
+Instead of asking an autoregressive LLM to select tools (costing money and adding ~1,000ms latency), route locally in 15ms:
+
+```python
+from zesyde.router import ZesydeRouter
+
+router = ZesydeRouter.from_pretrained("models", prefer_fp32=False)
+
+tools = ["search_web", "query_database", "send_email", "calculate_mortgage"]
+
+decision = router.decide(
+    context="User message: 'Can you look up the current stock price of Apple?'",
+    question="Select the optimal tool to fulfill this request:",
+    options=tools
+)
+
+print(f"Tool selected: {decision.selected_option} (confidence: {decision.confidence:.2%})")
+# Executes: search_web
+```
+
+#### Recipe B: Cost & Latency Gatekeeper (The LLM Cascade)
+Route routine queries to instant automated handling, while reserving expensive frontier models (GPT-4o, Claude 3.5 Sonnet) only for edge cases:
+
+```python
+decision = router.decide(
+    context=incoming_customer_ticket,
+    question="Categorize inquiry type:",
+    options=["Password Reset", "Billing Question", "Feature Request", "Complex Legal Issue"]
+)
+
+# If Zesyde detects ambiguity or low confidence, escalate to a heavy reasoning model
+if decision.should_escalate or decision.confidence < 0.75:
+    response = call_frontier_llm(incoming_customer_ticket)
+else:
+    response = handle_automated_workflow(decision.selected_option)
+```
+
+#### Recipe C: Multilingual Script & Language Routing
+For global applications across 1,800+ languages, use `LanguageRouter` for microsecond script detection and dynamic cross-lingual dispatch:
+
+```python
+from zesyde.lang_router import LanguageRouter
+
+lang_router = LanguageRouter(model_dir="models")
+
+# Automatically detects Spanish, Arabic, Hindi, German, etc.
+result = lang_router.decide(
+    context="El servicio al cliente fue excepcional y resolvieron mi problema rápidamente.",
+    question="¿Cuál es el sentimiento del cliente?",
+    options=["Negativo", "Neutral", "Positivo"]
+)
+
+print(f"Detected Language: {result.detected_language}")  # 'es'
+print(f"Selected: {result.selected_option}")              # 'Positivo'
+```
+
+#### Recipe D: Binary Verification / Fact-Checking (`noul`)
+Use the `noul` primitive for calibrated boolean verification (strictly 2 options):
+
+```python
+result = router.decide(
+    context="Statement: The capital of Australia is Canberra.",
+    question="Is this factual statement accurate?",
+    options=["No", "Yes"],
+    question_type="noul"
+)
+
+print(f"True? {result.selected_option == 'Yes'} (Confidence: {result.confidence:.3f})")
+```
+
+#### Recipe E: Ordinal Ratings & Scoring (`score`)
+Preserve monotonic distance across Likert scales or priority ratings:
+
+```python
+result = router.decide(
+    context="User comment: The product broke within 2 hours of use.",
+    question="Rate customer satisfaction on a scale from 1 to 5:",
+    options=["1", "2", "3", "4", "5"],
+    question_type="score"
+)
+
+print(f"Satisfaction Rating: {result.selected_option} / 5")
+```
+
+---
+
+### 4. Performance Tuning & CPU Optimization
+
+* **Multi-threading**: By default, `ZesydeRouter` sets `intra_op_num_threads = 4`, which yields the lowest batch-1 latency on modern CPUs. On small or containerized instances with 1–2 cores, you can adjust this directly in the ONNX session options.
+* **FP32 vs INT8**:
+  * **INT8** (`prefer_fp32=False`): Model file is **318 MB**. Delivers ~12–35ms latency and lowest RAM footprint.
+  * **FP32** (`prefer_fp32=True`): Model file is **1.2 GB**. Delivers exact mathematical parity with zero quantization noise, with minimal latency difference (~13ms on AVX-512).
 
 ---
 
@@ -227,7 +399,7 @@ Running the pipeline outputs complete serving artifacts to `models/`:
   author = {Chhatriwala, Zoeb},
   title = {Zesyde: Calibrated, Non-Autoregressive Decision & Routing Foundation Models},
   year = {2026},
-  version = {1.0.0},
+  version = {1.0.1},
   url = {https://huggingface.co/zoebchhatriwala/Zesyde-150M-Multilingual-Router}
 }
 ```
