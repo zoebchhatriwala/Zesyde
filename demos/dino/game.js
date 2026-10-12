@@ -412,28 +412,31 @@
         }
       }
 
-      // 2. Identify closest obstacle ahead and check if mid bird is overhead or approaching
+      // 2. Identify closest active obstacle ahead and check if mid bird hazard is active
       let closest = null;
       let minDist = 9999;
-      let midBirdActive = false;
-      const idealDuckDist = Math.max(50, this.speed * 8.5);
+      let midBirdHazard = false;
+      const idealDuckDist = Math.max(35, this.speed * 5.5);
 
       for (let i = 0; i < this.obstacles.length; i++) {
         const obs = this.obstacles[i];
-        const dinoFront = this.dino.x + (this.dino.isDucking ? 59 : 44);
-        const dist = obs.x - dinoFront;
 
-        if (obs.elevation === "mid") {
-          const birdBack = obs.x + obs.width;
-          // Duck tightly when bird is within 50-70px, and remain ducked until tail clears dino
-          if (birdBack >= this.dino.x && dist <= idealDuckDist) {
-            midBirdActive = true;
+        // Active obstacle: trailing edge has not completely passed the dino
+        if (obs.x + obs.width >= this.dino.x) {
+          const dinoFront = this.dino.x + (this.dino.isDucking ? 59 : 44);
+          const dist = obs.x - dinoFront;
+
+          if (obs.elevation === "mid") {
+            // Mid bird is either approaching in tight reaction window or currently overhead
+            if (dist <= idealDuckDist) {
+              midBirdHazard = true;
+            }
           }
-        }
 
-        if (dist > -20 && dist < minDist) {
-          minDist = dist;
-          closest = obs;
+          if (dist < minDist) {
+            minDist = dist;
+            closest = obs;
+          }
         }
       }
 
@@ -441,11 +444,11 @@
 
       // 3. Autopilot Proactive Action: Strictly requiring live model decisions (NO hardcoded cheats, NO jumping if offline)
       if (this.autopilot && !this.isGameOver && this.isServerOnline) {
-        if (midBirdActive && this.lastModelAction === "DUCK") {
+        if (midBirdHazard && (this.lastModelAction === "DUCK" || this.dino.isDucking)) {
           if (!this.dino.isDucking && this.dino.isGrounded) {
             this.triggerDuck();
           }
-        } else if (this.dino.isDucking) {
+        } else if (this.dino.isDucking && !midBirdHazard) {
           // Bird has completely passed behind! Safely resume sprinting
           this.releaseDuck();
         }
@@ -668,7 +671,7 @@
         safeDist > 0
       ) {
         const idealJumpDist = 16.6 * this.speed - 22 - nearest.width / 2;
-        const idealDuckDist = Math.max(50, this.speed * 8.5);
+        const idealDuckDist = Math.max(35, this.speed * 5.5);
 
         if (
           nearest.elevation === "low" &&
