@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zesyde — Adversarial Menu & Escalation Playground</title>
+  <title>Zesyde: Menu Routing & Escalation Evaluation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -587,10 +587,10 @@
   <header>
     <div class="brand">
       <span class="badge-core">Zesyde 150M</span>
-      <h1>Adversarial Menu & Escalation Playground</h1>
+      <h1>Menu Routing & Escalation Evaluation</h1>
     </div>
     <div class="header-meta">
-      <span><span class="live-dot"></span> Pure CPU INT8 ONNX</span>
+      <span><span class="live-dot"></span> CPU INT8 ONNX</span>
       <span>•</span>
       <span id="latencyHeader">Latency: -- ms</span>
     </div>
@@ -598,10 +598,10 @@
 
   <div class="container">
 
-    <!-- Preset Stress Scenarios -->
+    <!-- Preset Scenarios -->
     <div class="presets-card">
       <div class="presets-title">
-        <span>⚡ Select Adversarial Stress-Test Scenario</span>
+        <span>Benchmark Scenarios</span>
       </div>
       <div class="presets-grid" id="presetsGrid">
         <!-- Injected dynamically -->
@@ -614,28 +614,28 @@
       <!-- Left Column: Menu Configuration -->
       <div class="panel">
         <div class="panel-header">
-          <span class="panel-title">🛠️ The Adversarial Menu</span>
+          <span class="panel-title">Menu Configuration</span>
           <span style="font-size: 12px; color: var(--text-muted);" id="optionCountLabel">3 Options</span>
         </div>
 
         <div class="field-group">
-          <label for="queryInput">User Intent / Input Context</label>
+          <label for="queryInput">User Input Context</label>
           <textarea id="queryInput" placeholder="Enter user prompt or query..."></textarea>
         </div>
 
         <div class="field-group">
-          <label>Menu Candidate Options</label>
+          <label>Candidate Options</label>
           <div class="options-list" id="optionsList">
             <!-- Dynamic options -->
           </div>
-          <button class="btn-add" id="btnAddOption">+ Add Another Destination Candidate</button>
+          <button class="btn-add" id="btnAddOption">+ Add Option</button>
         </div>
 
         <div class="toggles-bar">
           <div class="toggle-row">
             <div>
-              <strong>Inject Explicit "None of These" Candidate</strong>
-              <div style="font-size: 11px; color: var(--text-muted);">Appends an explicit abstention/human escalation destination</div>
+              <strong>Include "None of these" candidate</strong>
+              <div style="font-size: 11px; color: var(--text-muted);">Provides an explicit fallback option for out-of-scope requests</div>
             </div>
             <label class="switch">
               <input type="checkbox" id="autoNoneCheck">
@@ -645,7 +645,7 @@
 
           <div class="range-group">
             <div class="range-label-row">
-              <span>Escalation Sensitivity Threshold</span>
+              <span>Escalation Threshold</span>
               <strong id="escalationVal">0.15</strong>
             </div>
             <input type="range" id="escalationSlider" min="0.05" max="0.50" step="0.01" value="0.15">
@@ -653,7 +653,7 @@
 
           <div class="range-group">
             <div class="range-label-row">
-              <span>Ambiguity Twin Margin Threshold</span>
+              <span>Ambiguity Margin Threshold</span>
               <strong id="ambiguityVal">0.15</strong>
             </div>
             <input type="range" id="ambiguitySlider" min="0.05" max="0.40" step="0.01" value="0.15">
@@ -661,31 +661,31 @@
         </div>
 
         <button class="btn-evaluate" id="btnEvaluate">
-          <span>⚡ Evaluate Menu & Route with Zesyde</span>
+          <span>Evaluate Routing</span>
         </button>
       </div>
 
       <!-- Right Column: Neural Inspector -->
       <div class="panel">
         <div class="panel-header">
-          <span class="panel-title">🧠 Neural Escalation & Routing Inspector</span>
-          <span style="font-family: var(--mono); font-size: 12px; color: var(--text-muted);">Calibrated Softmax</span>
+          <span class="panel-title">Routing Analysis</span>
+          <span style="font-family: var(--mono); font-size: 12px; color: var(--text-muted);">Calibrated Probabilities</span>
         </div>
 
         <!-- Big Verdict Card -->
         <div class="verdict-banner verdict-route" id="verdictCard">
           <div class="verdict-header" id="verdictHeader">
-            <span>✅ Ready to evaluate</span>
+            <span>Ready to evaluate</span>
           </div>
           <div class="verdict-desc" id="verdictDesc">
-            Click "Evaluate Menu & Route" or select a preset to stress-test how Zesyde handles flawed menus.
+            Select a benchmark scenario or enter custom options to evaluate how Zesyde handles ambiguous, out-of-scope, or ill-formed menus.
           </div>
         </div>
 
         <!-- Metric Gauges -->
         <div class="metrics-grid">
           <div class="metric-card">
-            <span class="metric-title">Lead Margin (Top 1 vs 2)</span>
+            <span class="metric-title">Top-2 Margin</span>
             <span class="metric-value" id="metricMargin">--</span>
           </div>
           <div class="metric-card">
@@ -698,16 +698,16 @@
           </div>
         </div>
 
-        <!-- Softmax Distribution -->
+        <!-- Distribution -->
         <div class="field-group">
-          <label>Softmax Probability Distribution Across Menu</label>
+          <label>Candidate Probability Distribution</label>
           <div class="dist-container" id="distContainer">
-            <div style="font-size: 13px; color: var(--text-muted); padding: 12px 0;">No routing run yet.</div>
+            <div style="font-size: 13px; color: var(--text-muted); padding: 12px 0;">No routing evaluated yet.</div>
           </div>
         </div>
 
         <div class="callout-box">
-          <strong>Why this matters:</strong> Standard LLMs suffer from forced-choice bias—when given a menu of 3 bad choices, they hallucinate a winner with 80%+ false confidence. Zesyde's calibrated epistemic entropy and dedicated escalation head immediately recognize when the menu itself is wrong.
+          <strong>Evaluation Note:</strong> Standard classifiers typically force a selection even when all candidate options are irrelevant. Zesyde tracks probability distribution margins, entropy, and uncertainty escalation to detect when a menu is missing the target destination or requires user clarification.
         </div>
 
       </div>
@@ -718,7 +718,7 @@
 
   <script>
     let currentPresets = [];
-    const NONE_OPTION_TEXT = "None of these (Needs clarification / Human review)";
+    const NONE_OPTION_TEXT = "None of these (Escalate for review)";
 
     // DOM references
     const presetsGrid = document.getElementById("presetsGrid");
@@ -865,7 +865,7 @@
       }
 
       btnEvaluate.disabled = true;
-      btnEvaluate.textContent = "Routing with Zesyde INT8 ONNX...";
+      btnEvaluate.textContent = "Evaluating routing...";
 
       try {
         const payload = {
@@ -895,7 +895,7 @@
         alert(`Request failed: ${err.message}`);
       } finally {
         btnEvaluate.disabled = false;
-        btnEvaluate.innerHTML = `<span>⚡ Evaluate Menu & Route with Zesyde</span>`;
+        btnEvaluate.innerHTML = `<span>Evaluate Routing</span>`;
       }
     }
 

@@ -47,8 +47,8 @@ PRESET_SCENARIOS = [
     {
         "id": "missing_destination",
         "category": "out_of_distribution",
-        "title": "The Missing Destination ('None of These')",
-        "description": "User wants a billing invoice refund, but the menu only contains airline, password, and kitchen options.",
+        "title": "Missing Option (Out of Scope)",
+        "description": "User requests a billing invoice refund, but the menu only contains flight, password, and kitchen options.",
         "context": "My credit card was charged twice for monthly subscription invoice #48291. Please refund the duplicate $49.00 payment.",
         "options": [
             "Book an international flight",
@@ -63,8 +63,8 @@ PRESET_SCENARIOS = [
     {
         "id": "overlapping_twins",
         "category": "ambiguity",
-        "title": "The Overlapping Twins (Needs Clarification)",
-        "description": "User says 'Cancel my reservation' without saying if it's hotel or flight. Two candidates strongly compete.",
+        "title": "Overlapping Options (Ambiguous)",
+        "description": "User requests a cancellation without specifying hotel or flight. Two candidates compete with narrow margin.",
         "context": "I need to cancel my booking immediately due to a family emergency. Please process the cancellation right away.",
         "options": [
             "Cancel hotel room reservation",
@@ -79,8 +79,8 @@ PRESET_SCENARIOS = [
     {
         "id": "vague_input",
         "category": "underspecified",
-        "title": "The Underspecified Input (Low Confidence)",
-        "description": "User input is extremely vague ('It is broken, fix it'). The router should detect low confidence across all candidates.",
+        "title": "Vague Input (Low Confidence)",
+        "description": "User input lacks necessary context ('It is broken, fix it'). Low confidence across all options.",
         "context": "It is completely broken and nothing is working. Fix it now.",
         "options": [
             "Submit software bug report with logs",
@@ -95,8 +95,8 @@ PRESET_SCENARIOS = [
     {
         "id": "clean_match",
         "category": "high_confidence",
-        "title": "The Clean Match (Control Baseline)",
-        "description": "User input matches exactly one destination clearly. High confidence, zero ambiguity.",
+        "title": "Clear Match (Baseline)",
+        "description": "User query clearly matches a single destination option. High confidence control case.",
         "context": "Where in my account settings can I update my debit card number and billing address?",
         "options": [
             "Manage payment methods and saved credit cards",
@@ -111,8 +111,8 @@ PRESET_SCENARIOS = [
     {
         "id": "multilingual_missing",
         "category": "multilingual",
-        "title": "Multilingual Out-of-Distribution (Spanish/French/Hindi)",
-        "description": "User writes in Spanish requesting a medical appointment, given a financial menu.",
+        "title": "Cross-Lingual Mismatch",
+        "description": "User writes in Spanish requesting a medical appointment against an unrelated banking menu.",
         "context": "Necesito agendar una cita médica urgente con el cardiólogo para mañana por la mañana.",
         "options": [
             "Transferir fondos entre cuentas bancarias",
@@ -215,36 +215,36 @@ async def route_decision(req: RouteRequest):
     # 1. Did model explicitly choose "None of these"?
     if none_option_added and top1_opt == req.none_label:
         verdict = "NONE_OF_THESE"
-        verdict_title = "🛑 NONE OF THESE (Missing Destination)"
-        verdict_desc = f"The model detected that none of the provided choices match the user request with confidence {top1_prob:.1%}. Routing to human review."
+        verdict_title = "None of these: Missing destination"
+        verdict_desc = f"The model determined that none of the provided choices match the request (confidence {top1_prob:.1%}). Routing to fallback review."
         verdict_action = "ESCALATE_FALLBACK"
 
     # 2. Did the dedicated escalation head fire?
     elif res.should_escalate or res.escalate_probability >= req.escalation_threshold:
         verdict = "ESCALATED"
-        verdict_title = "🛑 ESCALATED (Uncertainty Head Fired)"
-        verdict_desc = f"Escalation probability ({res.escalate_probability:.1%}) exceeded threshold ({req.escalation_threshold:.1%}). Model abstains from forced choice."
+        verdict_title = "Escalated: High uncertainty"
+        verdict_desc = f"Escalation probability ({res.escalate_probability:.1%}) exceeded threshold ({req.escalation_threshold:.1%}). Model abstained from forced selection."
         verdict_action = "ESCALATE_FALLBACK"
 
     # 3. Are the top two options ambiguous twins?
     elif len(sorted_probs) > 1 and margin < req.ambiguity_threshold and top1_prob < 0.65:
         verdict = "AMBIGUOUS"
-        verdict_title = "⚠️ NEEDS CLARIFICATION (Ambiguous Twins)"
-        verdict_desc = f"Top options '{top1_opt}' ({top1_prob:.1%}) and '{top2_opt}' ({top2_prob:.1%}) have an ambiguous margin of only {margin:.1%}. Clarification required."
+        verdict_title = "Needs clarification: Overlapping candidates"
+        verdict_desc = f"Top options '{top1_opt}' ({top1_prob:.1%}) and '{top2_opt}' ({top2_prob:.1%}) have an ambiguous margin of {margin:.1%}. Clarification required."
         verdict_action = "ASK_CLARIFICATION"
 
     # 4. Low confidence floor across all choices (Implicit None)
     elif top1_prob < 0.45:
         verdict = "LOW_CONFIDENCE"
-        verdict_title = "❓ LOW CONFIDENCE (Underspecified/Bad Menu)"
-        verdict_desc = f"Top choice only achieved {top1_prob:.1%}. Menu lacks an adequate match for this query."
+        verdict_title = "Low confidence: Inadequate match"
+        verdict_desc = f"Top candidate achieved {top1_prob:.1%}. The menu lacks a clear match for this query."
         verdict_action = "PROMPT_USER"
 
     # 5. Clean, authoritative match
     else:
         verdict = "ROUTE_ACCEPTED"
-        verdict_title = f"✅ ROUTE ACCEPTED: {top1_opt}"
-        verdict_desc = f"Authoritative match with {top1_prob:.1%} confidence and {margin:.1%} lead margin."
+        verdict_title = f"Route accepted: {top1_opt}"
+        verdict_desc = f"Matched with {top1_prob:.1%} confidence and {margin:.1%} lead margin."
         verdict_action = "EXECUTE_ROUTE"
 
     return {

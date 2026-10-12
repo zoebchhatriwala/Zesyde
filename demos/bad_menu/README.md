@@ -1,10 +1,10 @@
-# Zesyde Adversarial Menu & Escalation Playground (`demos/bad_menu`)
+# Zesyde Menu Routing & Escalation Evaluation (`demos/bad_menu`)
 
-Interactive stress-test playground testing Zesyde on intentionally flawed menus:
-- **The Missing Destination**: When the correct choice is absent, can it select *"None of these"* or escalate instead of hallucinating?
-- **The Overlapping Twins**: When options overlap ambiguously, can it detect high epistemic entropy and prompt for user clarification?
-- **The Underspecified Input**: When queries lack context, does the model abstain?
-- **Clean Match Control**: Authoritative, low-latency, calibrated routing.
+Interactive evaluation suite testing Zesyde on challenging or ill-formed menus:
+- **Missing Option**: Evaluates whether the model selects *"None of these"* or escalates when the correct destination is absent.
+- **Overlapping Options**: Evaluates whether the model identifies ambiguity and prompts for clarification when options conflict.
+- **Vague Input**: Evaluates whether the model detects low confidence and abstains when input lacks context.
+- **Clear Match Baseline**: Evaluates control routing accuracy on straightforward inputs.
 
 ---
 
