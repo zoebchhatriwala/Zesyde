@@ -416,19 +416,21 @@
       let closest = null;
       let minDist = 9999;
       let midBirdActive = false;
-      const duckAnticipation = Math.max(160, this.speed * 20.0);
+      const idealDuckDist = Math.max(50, this.speed * 8.5);
 
       for (let i = 0; i < this.obstacles.length; i++) {
         const obs = this.obstacles[i];
+        const dinoFront = this.dino.x + (this.dino.isDucking ? 59 : 44);
+        const dist = obs.x - dinoFront;
+
         if (obs.elevation === "mid") {
-          const birdFront = obs.x;
           const birdBack = obs.x + obs.width;
-          if (birdBack >= this.dino.x - 10 && birdFront <= this.dino.x + duckAnticipation) {
+          // Duck tightly when bird is within 50-70px, and remain ducked until tail clears dino
+          if (birdBack >= this.dino.x && dist <= idealDuckDist) {
             midBirdActive = true;
           }
         }
 
-        const dist = obs.x - (this.dino.x + (this.dino.isDucking ? 59 : 44));
         if (dist > -20 && dist < minDist) {
           minDist = dist;
           closest = obs;
@@ -666,7 +668,7 @@
         safeDist > 0
       ) {
         const idealJumpDist = 16.6 * this.speed - 22 - nearest.width / 2;
-        const idealDuckDist = Math.max(160, this.speed * 20.0);
+        const idealDuckDist = Math.max(50, this.speed * 8.5);
 
         if (
           nearest.elevation === "low" &&
