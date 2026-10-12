@@ -162,6 +162,7 @@
       this.isGameOver = false;
       this.autopilot = true;
       this.lastModelAction = "RUN";
+      this.isServerOnline = false;
       this.groundOffset = 0;
       this.lastDecisionTime = 0;
       this.lastFrameTime = performance.now();
@@ -436,9 +437,9 @@
 
       this.nearestObstacle = closest;
 
-      // 3. Autopilot Proactive Action: Duck BEFORE collision evaluation
-      if (this.autopilot && !this.isGameOver) {
-        if (midBirdActive) {
+      // 3. Autopilot Proactive Action: Strictly requiring live model decisions (NO hardcoded cheats, NO jumping if offline)
+      if (this.autopilot && !this.isGameOver && this.isServerOnline) {
+        if (midBirdActive && this.lastModelAction === "DUCK") {
           if (!this.dino.isDucking && this.dino.isGrounded) {
             this.triggerDuck();
           }
@@ -447,10 +448,10 @@
           this.releaseDuck();
         }
 
-        // Jump for low obstacles (ground cactus or low bird)
+        // Jump for low obstacles ONLY IF live model explicitly chose JUMP
         if (closest && closest.elevation === "low" && !closest.actionTriggered && minDist > 0) {
           const idealJumpDist = 16.6 * this.speed - 22 - closest.width / 2;
-          if (minDist <= idealJumpDist && (this.lastModelAction === "JUMP" || closest.type.startsWith("CACTUS"))) {
+          if (minDist <= idealJumpDist && this.lastModelAction === "JUMP") {
             closest.actionTriggered = true;
             this.triggerJump();
           }
@@ -645,11 +646,13 @@
 
       if (!res) {
         // SERVER IS DOWN: Show offline status, DO NOT FAKE OR MOCK ACTION
-        this.lastModelAction = "RUN";
+        this.isServerOnline = false;
+        this.lastModelAction = "NONE";
         this.updateOfflineUi();
         return;
       }
 
+      this.isServerOnline = true;
       // Live model decision from INT8 ONNX on CPU
       this.lastModelAction = res.action;
       this.updateTelemetryUi(res, nearest, safeDist);
