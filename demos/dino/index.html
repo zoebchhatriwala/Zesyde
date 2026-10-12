@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>No internet</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🦖</text></svg>">
+  <link rel="stylesheet" href="style.css?v=11">
+</head>
+<body class="dark-theme">
+
+  <!-- Chrome Error Page Main Container -->
+  <div class="interstitial-wrapper">
+    
+    <!-- Pre-game Idle State: Standing Dino Icon -->
+    <div class="icon-offline-container" id="iconContainer" title="Press space to play">
+      <img src="100-error-offline.png" class="icon-offline" id="offlineIcon" alt="No internet">
+    </div>
+
+    <!-- Active Game Canvas (Canonical 600px Chromium canvas) -->
+    <div class="canvas-container" id="canvasContainer" style="display: none;">
+      <canvas id="gameCanvas" width="600" height="150"></canvas>
+    </div>
+
+    <!-- Authentic Chrome Error Text -->
+    <div class="main-message" id="mainMessage">
+      <h1>Press space to play</h1>
+      
+      <div class="suggestions">
+        <p>Try:</p>
+        <ul>
+          <li>Checking the network cables, modem and router</li>
+          <li>Reconnecting to Wi-Fi</li>
+          <li><a href="#" class="link-text" onclick="return false;">Running Windows Network Diagnostics</a></li>
+        </ul>
+      </div>
+
+      <div class="error-code">ERR_INTERNET_DISCONNECTED</div>
+    </div>
+
+    <!-- Live Zesyde Model Telemetry (100% Authentic CPU INT8 Foundation Model) -->
+    <div class="model-telemetry-strip" id="telemetryStrip">
+      <div class="model-badge">
+        <span class="pulse-dot" id="pulseDot"></span>
+        <span id="modelStatusText">Zesyde-150M-Multilingual-Router, CPU, INT8</span>
+      </div>
+      <div class="telemetry-info">
+        <span>Latency: <strong id="latencyDisplay">-- ms</strong></span>
+        <span class="separator">•</span>
+        <span>Action: <strong id="actionDisplay" class="action-highlight">WAITING</strong> (<span id="confDisplay">--%</span>)</span>
+        <span class="separator">•</span>
+        <span>Target: <span id="targetDisplay">Track Clear</span></span>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="model-bridge.js?v=16"></script>
+  <script src="game.js?v=16"></script>
+</body>
+</html>

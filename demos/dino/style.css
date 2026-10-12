@@ -1,0 +1,201 @@
+/* ==========================================================================
+   CHROME OFFLINE "NO INTERNET" PAGE - PIXEL ACCURATE THEME
+   ========================================================================== */
+
+:root {
+  --bg-color: #202124;
+  --text-primary: #e8eaed;
+  --text-secondary: #9aa0a6;
+  --link-color: #8ab4f8;
+  --error-code-color: #80868b;
+}
+
+body.dark-theme,
+:root {
+  --bg-color: #202124;
+  --text-primary: #e8eaed;
+  --text-secondary: #9aa0a6;
+  --link-color: #8ab4f8;
+  --error-code-color: #80868b;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-secondary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 24px;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.interstitial-wrapper {
+  box-sizing: border-box;
+  max-width: 600px;
+  margin: 14vh auto 0;
+  padding: 0 24px;
+  width: 100%;
+}
+
+/* Offline Dino Icon (Exact Chrome 100-error-offline sprite) */
+.icon-offline-container {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 24px;
+  cursor: pointer;
+}
+
+.icon-offline {
+  width: 72px;
+  height: 72px;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  filter: invert(1);
+}
+
+/* Canvas Area */
+.canvas-container {
+  width: 600px;
+  max-width: 100%;
+  height: 150px;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+canvas#gameCanvas {
+  width: 600px;
+  max-width: 100%;
+  height: 150px;
+  display: block;
+  background: transparent;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  filter: invert(1);
+}
+
+/* Chrome Error Details */
+.main-message {
+  display: flex;
+  flex-direction: column;
+}
+
+
+h1 {
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-top: 0;
+  margin-bottom: 16px;
+  line-height: 1.25em;
+  letter-spacing: -0.01em;
+}
+
+.suggestions {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.suggestions p {
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+
+.suggestions ul {
+  padding-left: 20px;
+  margin-bottom: 16px;
+  list-style-type: disc;
+}
+
+.suggestions li {
+  margin-bottom: 4px;
+  color: var(--text-secondary);
+}
+
+.link-text {
+  color: var(--link-color);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.link-text:hover {
+  text-decoration: underline;
+}
+
+.error-code {
+  color: var(--error-code-color);
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: 0.02em;
+  margin-top: 24px;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   AUTHENTIC ZESYDE MODEL TELEMETRY STRIP (CLEAN & SUBTLE)
+   ========================================================================== */
+
+.model-telemetry-strip {
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid #3c4043;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.model-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #81c995;
+  transition: background-color 0.2s ease;
+}
+
+.pulse-dot.offline {
+  background-color: #ea4335 !important;
+}
+
+.telemetry-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-size: 12px;
+}
+
+.telemetry-info strong {
+  color: var(--text-primary);
+}
+
+.action-highlight {
+  color: #ff8559 !important;
+  font-weight: 700;
+}
+
+.separator {
+  color: #3c4043;
+}

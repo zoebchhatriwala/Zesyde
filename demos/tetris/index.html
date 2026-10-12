@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zesyde Tetris — Neural Decision Router Demo</title>
+    <meta name="description" content="Watch Zesyde 150M-class Foundation Router play Tetris in your browser — every piece evaluated by a real ONNX forward pass, with live latency, running inference cost, and calibrated confidence.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-page: #08090c;
+            --bg-card: #0f1118;
+            --bg-elevated: #151824;
+            --border-subtle: #1c2033;
+            --border-active: #323854;
+            --text-main: #f0f2f8;
+            --text-muted: #7e859f;
+            --text-faint: #4c526d;
+            --accent-brand: #7c8cff;
+            --accent-cyan: #08fff0;
+            --accent-green: #7ff0a8;
+            --accent-amber: #edc22e;
+            --accent-red: #ff6b6b;
+            --accent-purple: #c77dff;
+            --radius-card: 14px;
+            --radius-sm: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem 1rem 3rem;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 760px;
+        }
+
+        /* Top Brand Header */
+        .brand-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+
+        .logo-mark {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #7c8cff, #5b6bff);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(124, 140, 255, 0.25);
+        }
+
+        .brand-text {
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: -0.2px;
+        }
+
+        .brand-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--accent-cyan);
+            background: rgba(8, 255, 240, 0.08);
+            border: 1px solid rgba(8, 255, 240, 0.2);
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-left: 6px;
+        }
+
+        .model-pill {
+            font-size: 0.78rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-muted);
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            padding: 4px 10px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .model-pill-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        /* Hero Prose */
+        .hero-prose {
+            margin-bottom: 1.5rem;
+        }
+
+        .kicker {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent-brand);
+            display: inline-block;
+            margin-bottom: 4px;
+        }
+
+        .hero-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .hero-lede {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-muted);
+        }
+
+        /* Top Stats Bar */
+        .j-stats {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 1.25rem;
+        }
+
+        .j-stat {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .j-stat-n {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+        .j-stat-n i {
+            font-size: 0.75rem;
+            font-style: normal;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-left: 2px;
+        }
+
+        .j-stat-l {
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* Main Game Layout */
+        .j-main {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 18px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 18px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Board Container */
+        .j-board-wrap {
+            position: relative;
+            background: #050608;
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas#tetrisCanvas {
+            display: block;
+            border-radius: 4px;
+            background-color: #030406;
+        }
+
+        /* Game Over Overlay */
+        .j-over {
+            position: absolute;
+            inset: 0;
+            background: rgba(8, 9, 12, 0.92);
+            backdrop-filter: blur(4px);
+            border-radius: 10px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px;
+            text-align: center;
+            z-index: 20;
+        }
+
+        .j-over.visible {
+            display: flex;
+        }
+
+        .j-over b {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-red);
+        }
+
+        .j-over span {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .j-over span b {
+            color: var(--text-main);
+            font-size: 0.9rem;
+        }
+
+        .j-over-btns {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        /* Side Controls & Stream */
+        .j-side {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .j-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ctrl-row-top {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            font-family: inherit;
+            font-size: 0.86rem;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 9px 16px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-brand);
+            color: #06070a;
+            flex: 1;
+            font-weight: 700;
+        }
+
+        .btn-primary:hover {
+            background: #94a2ff;
+            transform: translateY(-1px);
+        }
+
+        .btn-ghost {
+            background: var(--bg-elevated);
+            color: var(--text-main);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .btn-ghost:hover {
+            background: #1c2133;
+            border-color: var(--border-active);
+        }
+
+        .speed-bar {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-elevated);
+            padding: 3px;
+            border-radius: 6px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .btn-speed {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 5px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-speed.active {
+            background: var(--border-active);
+            color: var(--text-main);
+        }
+
+        /* Decision Stream */
+        .j-stream-h {
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .j-stream {
+            flex: 1;
+            min-height: 280px;
+            max-height: 320px;
+            overflow-y: auto;
+            background: #06070a;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .j-stream-empty {
+            margin: auto;
+            color: var(--text-faint);
+            font-size: 0.8rem;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .j-move {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-family: 'JetBrains Mono', monospace;
+            animation: fadeIn 0.15s ease-out;
+        }
+
+        .j-move.top {
+            border-color: rgba(124, 140, 255, 0.4);
+            background: rgba(124, 140, 255, 0.06);
+        }
+
+        .j-move-col {
+            font-weight: 700;
+            color: var(--accent-brand);
+        }
+
+        .j-move-lines {
+            color: var(--text-muted);
+        }
+
+        .j-move-lines.cleared {
+            color: var(--accent-green);
+            font-weight: 700;
+        }
+
+        .j-move-ms {
+            color: var(--text-faint);
+            font-size: 0.72rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Real Decision Accordion */
+        .bwj-real {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 14px 18px;
+            margin-bottom: 2rem;
+        }
+
+        .bwj-real summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-main);
+            user-select: none;
+        }
+
+        .bwj-real summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .bwj-real-peek {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: var(--bg-elevated);
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .bwj-real-grid {
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+            gap: 18px;
+            border-top: 1px solid var(--border-subtle);
+            padding-top: 14px;
+        }
+
+        .bwj-real-col {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .bwj-real-l {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        pre.bwj-real-state {
+            background: #050608;
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: #b0b7d1;
+            line-height: 1.35;
+            height: 195px;
+            max-height: 195px;
+            overflow-y: auto;
+            overflow-x: auto;
+            white-space: pre;
+            min-width: 0;
+            width: 100%;
+        }
+
+        .bwj-probs {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #050608;
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 10px 12px;
+            height: 195px;
+            max-height: 195px;
+            overflow-y: auto;
+            min-width: 0;
+            width: 100%;
+        }
+
+        .bwj-prob-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.74rem;
+            min-width: 0;
+            cursor: default;
+        }
+
+        .bwj-prob-k {
+            width: 26px;
+            color: var(--text-muted);
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .bwj-prob-k.win {
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+
+        .bwj-prob-bar {
+            flex: 1;
+            min-width: 60px;
+            height: 8px;
+            background: #151824;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .bwj-prob-bar i {
+            display: block;
+            height: 100%;
+            background: var(--accent-brand);
+            border-radius: 4px;
+        }
+
+        .bwj-prob-row.win .bwj-prob-bar i {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px rgba(8, 255, 240, 0.4);
+        }
+
+        .bwj-prob-v {
+            width: 44px;
+            text-align: right;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            flex-shrink: 0;
+        }
+
+        .bwj-prob-row.win .bwj-prob-v {
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .bwj-real-meta {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .bwj-real-meta b {
+            color: var(--text-main);
+        }
+
+        /* Transparent Explanation Box */
+        .info-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-card);
+            padding: 18px 20px;
+            font-size: 0.88rem;
+            line-height: 1.55;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .info-card h3 {
+            color: var(--text-main);
+            font-size: 1rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-card ol {
+            padding-left: 1.25rem;
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .info-card ol li strong {
+            color: var(--text-main);
+        }
+
+        @media (max-width: 640px) {
+            .j-stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .j-main {
+                grid-template-columns: 1fr;
+            }
+            .bwj-real-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- Brand Header -->
+        <header class="brand-nav">
+            <a href="/" class="brand-logo">
+                <div class="logo-mark">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    Zesyde
+                    <span class="brand-badge">Tetris</span>
+                </div>
+            </a>
+            <div class="model-pill">
+                <span class="model-pill-dot"></span>
+                <span>150M-class Foundation Router</span>
+            </div>
+        </header>
+
+        <!-- Hero Intro -->
+        <section class="hero-prose">
+            <span class="kicker">Live Demo · Autonomous Decision Routing</span>
+            <h1 class="hero-title">Zesyde plays Tetris</h1>
+            <p class="hero-lede">
+                Every piece is evaluated by the Zesyde 150M-class Foundation Router. The 10×18 board and candidate placements are dispatched to the model, Zesyde outputs calibrated probability distributions across moves in milliseconds, and the top decision is executed.
+            </p>
+        </section>
+
+        <!-- Top Stats Bar -->
+        <div class="j-stats">
+            <div class="j-stat">
+                <span class="j-stat-n" id="statDecisions">0</span>
+                <span class="j-stat-l">decisions</span>
+            </div>
+            <div class="j-stat">
+                <span class="j-stat-n"><span id="statLatency">—</span><i>ms</i></span>
+                <span class="j-stat-l">last latency</span>
+            </div>
+            <div class="j-stat">
+                <span class="j-stat-n" id="statCost">$0.00000</span>
+                <span class="j-stat-l">inference cost</span>
+            </div>
+            <div class="j-stat">
+                <span class="j-stat-n" id="statLines">0</span>
+                <span class="j-stat-l">lines</span>
+            </div>
+            <div class="j-stat">
+                <span class="j-stat-n" id="statNextPiece" style="color: #6be0ff;">I</span>
+                <span class="j-stat-l">next piece</span>
+            </div>
+        </div>
+
+        <!-- Main Board & Side Controls -->
+        <main class="j-main">
+            
+            <!-- 10x18 Canvas Board -->
+            <div class="j-board-wrap">
+                <!-- 10 cols x 18 rows @ 24px = 240 x 432 -->
+                <canvas id="tetrisCanvas" width="240" height="432"></canvas>
+
+                <!-- Top Out Overlay -->
+                <div class="j-over" id="gameOverOverlay">
+                    <b>Top out</b>
+                    <span>Zesyde made <b id="finalDecisions">0</b> decisions · cleared <b id="finalLines">0</b> lines · <b id="finalCost">$0.00000</b></span>
+                    <div class="j-over-btns">
+                        <button class="btn btn-primary" onclick="resetGame(); togglePlay();">Play again</button>
+                        <button class="btn btn-ghost" onclick="resetGame();">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Panel: Controls & Stream -->
+            <div class="j-side">
+                <div class="j-controls">
+                    <div class="ctrl-row-top">
+                        <button class="btn btn-primary" id="btnPlay" onclick="togglePlay()">▶ Watch Zesyde play</button>
+                        <button class="btn btn-ghost" onclick="resetGame()">Reset</button>
+                    </div>
+                    <div class="speed-bar">
+                        <button class="btn-speed" id="spdNormal" onclick="setSpeed(900, 'spdNormal')">Normal</button>
+                        <button class="btn-speed active" id="spdFast" onclick="setSpeed(350, 'spdFast')">Fast</button>
+                        <button class="btn-speed" id="spdTurbo" onclick="setSpeed(60, 'spdTurbo')">Turbo</button>
+                    </div>
+                </div>
+
+                <div class="j-stream-h">
+                    <span>Decision stream</span>
+                    <span id="streamCounter" style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-faint);">0 moves</span>
+                </div>
+
+                <div class="j-stream" id="decisionStream">
+                    <span class="j-stream-empty" id="streamEmptyMsg">press play — watch Zesyde place pieces live</span>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Real Decision Inspector -->
+        <details class="bwj-real" open>
+            <summary>
+                <span>Live Neural Decision Inspector</span>
+                <span class="bwj-real-peek" id="peekBadge">p0 · — ms</span>
+            </summary>
+            <div class="bwj-real-grid">
+                <div class="bwj-real-col">
+                    <span class="bwj-real-l">Model Input State</span>
+                    <pre class="bwj-real-state" id="inspectState">Waiting for first piece...</pre>
+                </div>
+                <div class="bwj-real-col">
+                    <span class="bwj-real-l">Neural Softmax Probabilities</span>
+                    <div class="bwj-probs" id="inspectProbs">
+                        <div style="color: var(--text-faint); font-size: 0.72rem; padding: 4px;">No decisions executed yet.</div>
+                    </div>
+                    <div class="bwj-real-meta">
+                        <span>latency <b id="inspectLatency">0 ms</b></span>
+                        <span>tokens <b id="inspectTokens">0</b></span>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- Transparent Architecture Explanation -->
+        <section class="info-card">
+            <h3>How This Actually Works (100% Transparent Architecture)</h3>
+            <p>
+                To avoid misleading claims, here is the exact separation of responsibilities between classical simulation and neural model routing:
+            </p>
+            <ol>
+                <li>
+                    <strong>Candidate Physics Simulation:</strong> The engine calculates physically legal landings across rotations and columns, scoring stability based on surface bumpiness, height, and holes.
+                </li>
+                <li>
+                    <strong>Candidate Selection:</strong> The top candidate moves are formatted as typed multiple-choice options with their line clears and hole counts.
+                </li>
+                <li>
+                    <strong>Neural Decision Forward Pass:</strong> Zesyde's 150M-class foundation model runs ONNX cross-attention over the 2D ASCII board matrix and options to select the preferred placement with calibrated confidence.
+                </li>
+            </ol>
+        </section>
+
+    </div>
+
+    <script>
+        // Game & UI State
+        const COLS = 10;
+        const ROWS = 18;
+        const CELL_SIZE = 24;
+
+        const PIECE_COLORS = {
+            1: "#6be0ff", // I
+            2: "#edc22e", // O
+            3: "#c77dff", // T
+            4: "#7ff0a8", // S
+            5: "#ff6b6b", // Z
+            6: "#7c8cff", // J
+            7: "#f59563"  // L
+        };
+
+        const PIECE_NAMES = {
+            "I": "#6be0ff",
+            "O": "#edc22e",
+            "T": "#c77dff",
+            "S": "#7ff0a8",
+            "Z": "#ff6b6b",
+            "J": "#7c8cff",
+            "L": "#f59563"
+        };
+
+        let isRunning = false;
+        let isPlanning = false;
+        let playInterval = 350;
+        let timer = null;
+
+        let totalDecisions = 0;
+        let cumulativeCost = 0.0;
+        let gameState = null;
+
+        const canvas = document.getElementById("tetrisCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Elements
+        const btnPlay = document.getElementById("btnPlay");
+        const statDecisions = document.getElementById("statDecisions");
+        const statLatency = document.getElementById("statLatency");
+        const statCost = document.getElementById("statCost");
+        const statLines = document.getElementById("statLines");
+        const statNextPiece = document.getElementById("statNextPiece");
+        const decisionStream = document.getElementById("decisionStream");
+        const streamEmptyMsg = document.getElementById("streamEmptyMsg");
+        const gameOverOverlay = document.getElementById("gameOverOverlay");
+
+        const peekBadge = document.getElementById("peekBadge");
+        const inspectState = document.getElementById("inspectState");
+        const inspectProbs = document.getElementById("inspectProbs");
+        const inspectLatency = document.getElementById("inspectLatency");
+        const inspectTokens = document.getElementById("inspectTokens");
+
+        // Render Canvas
+        function drawBoard() {
+            ctx.fillStyle = "#030406";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid lines
+            ctx.strokeStyle = "#0d101a";
+            ctx.lineWidth = 1;
+            for (let c = 0; c <= COLS; c++) {
+                ctx.beginPath();
+                ctx.moveTo(c * CELL_SIZE, 0);
+                ctx.lineTo(c * CELL_SIZE, ROWS * CELL_SIZE);
+                ctx.stroke();
+            }
+            for (let r = 0; r <= ROWS; r++) {
+                ctx.beginPath();
+                ctx.moveTo(0, r * CELL_SIZE);
+                ctx.lineTo(COLS * CELL_SIZE, r * CELL_SIZE);
+                ctx.stroke();
+            }
+
+            if (!gameState || !gameState.grid) return;
+
+            // Draw locked cells
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const colorId = gameState.grid[r][c];
+                    if (colorId !== 0) {
+                        const hex = PIECE_COLORS[colorId] || "#7c8cff";
+                        drawBlock(c, r, hex);
+                    }
+                }
+            }
+        }
+
+        function drawBlock(c, r, colorHex) {
+            const x = c * CELL_SIZE;
+            const y = r * CELL_SIZE;
+            const p = 1.5;
+
+            ctx.fillStyle = colorHex;
+            ctx.beginPath();
+            ctx.roundRect(x + p, y + p, CELL_SIZE - p * 2, CELL_SIZE - p * 2, 3);
+            ctx.fill();
+
+            // Inner highlight
+            ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+            ctx.fillRect(x + p, y + p, CELL_SIZE - p * 2, 2);
+        }
+
+        // Fetch initial state
+        async function fetchState() {
+            try {
+                const res = await fetch("/api/state");
+                const data = await res.json();
+                gameState = data.state;
+                updateStats();
+                drawBoard();
+            } catch (err) {
+                console.error("fetchState error:", err);
+            }
+        }
+
+        function updateStats() {
+            if (!gameState) return;
+            statLines.textContent = gameState.lines_cleared;
+            const nextP = gameState.next_piece || "—";
+            statNextPiece.textContent = nextP;
+            statNextPiece.style.color = PIECE_NAMES[nextP] || "var(--text-main)";
+
+            if (gameState.game_over) {
+                document.getElementById("finalDecisions").textContent = totalDecisions;
+                document.getElementById("finalLines").textContent = gameState.lines_cleared;
+                document.getElementById("finalCost").textContent = "$" + cumulativeCost.toFixed(5);
+                gameOverOverlay.classList.add("visible");
+                pausePlay();
+            } else {
+                gameOverOverlay.classList.remove("visible");
+            }
+        }
+
+        // Step function
+        async function stepGame() {
+            if (isPlanning || !isRunning) return;
+            isPlanning = true;
+
+            try {
+                const res = await fetch("/api/step", { method: "POST" });
+                const data = await res.json();
+
+                gameState = data.state;
+                const dec = data.decision;
+
+                if (dec && !dec.game_over) {
+                    totalDecisions++;
+                    cumulativeCost += (dec.cost_usd || 0.000021);
+
+                    statDecisions.textContent = totalDecisions;
+                    statLatency.textContent = dec.latency_ms;
+                    statCost.textContent = "$" + cumulativeCost.toFixed(5);
+
+                    addStreamItem(dec);
+                    updateInspector(dec);
+                }
+
+                updateStats();
+                drawBoard();
+
+                if (gameState.game_over) {
+                    pausePlay();
+                }
+            } catch (err) {
+                console.error("Step error:", err);
+                pausePlay();
+            } finally {
+                isPlanning = false;
+            }
+        }
+
+        function addStreamItem(dec) {
+            if (streamEmptyMsg) streamEmptyMsg.style.display = "none";
+
+            const col = (dec.target_x !== undefined ? dec.target_x + 1 : 1);
+            const cleared = gameState.last_cleared_lines || 0;
+
+            const item = document.createElement("div");
+            item.className = "j-move top";
+
+            const colSpan = document.createElement("span");
+            colSpan.className = "j-move-col";
+            colSpan.textContent = `COL ${col}`;
+
+            const linesSpan = document.createElement("span");
+            linesSpan.className = "j-move-lines" + (cleared > 0 ? " cleared" : "");
+            linesSpan.textContent = cleared > 0 ? `+${cleared} line${cleared > 1 ? "s" : ""}` : "—";
+
+            const msSpan = document.createElement("span");
+            msSpan.className = "j-move-ms";
+            msSpan.textContent = `${dec.latency_ms}ms`;
+
+            item.appendChild(colSpan);
+            item.appendChild(linesSpan);
+            item.appendChild(msSpan);
+
+            const oldTops = decisionStream.querySelectorAll(".j-move.top");
+            oldTops.forEach(el => el.classList.remove("top"));
+
+            decisionStream.prepend(item);
+
+            while (decisionStream.children.length > 25) {
+                decisionStream.removeChild(decisionStream.lastChild);
+            }
+
+            document.getElementById("streamCounter").textContent = `${totalDecisions} moves`;
+        }
+
+        function updateInspector(dec) {
+            const keyMatch = (dec.selected_option_text || "").match(/p\d+/);
+            const key = keyMatch ? keyMatch[0] : "p0";
+            peekBadge.textContent = `${key} · ${dec.latency_ms}ms`;
+
+            inspectState.textContent = dec.context_text || "";
+            inspectLatency.textContent = `${dec.latency_ms} ms`;
+            inspectTokens.textContent = dec.input_tokens || 0;
+
+            inspectProbs.innerHTML = "";
+            const probs = dec.probabilities || {};
+            const keys = Object.keys(probs);
+
+            keys.forEach(optText => {
+                const optKey = (optText.match(/p\d+/) || [optText])[0];
+                const pVal = probs[optText];
+                const pct = Math.round(pVal * 100);
+                const isWin = optText === dec.selected_option_text || optKey === key;
+
+                const row = document.createElement("div");
+                row.className = "bwj-prob-row" + (isWin ? " win" : "");
+                row.title = optText;
+
+                row.innerHTML = `
+                    <span class="bwj-prob-k ${isWin ? "win" : ""}">${optKey}</span>
+                    <span class="bwj-prob-bar"><i style="width: ${pct}%"></i></span>
+                    <span class="bwj-prob-v">${pct}%</span>
+                `;
+                inspectProbs.appendChild(row);
+            });
+        }
+
+        function togglePlay() {
+            if (isRunning) {
+                pausePlay();
+            } else {
+                startPlay();
+            }
+        }
+
+        function startPlay() {
+            if (gameState && gameState.game_over) {
+                resetGame();
+            }
+            isRunning = true;
+            btnPlay.textContent = "⏸ Pause";
+            btnPlay.classList.remove("btn-primary");
+            btnPlay.classList.add("btn-ghost");
+            clearInterval(timer);
+            timer = setInterval(stepGame, playInterval);
+            stepGame();
+        }
+
+        function pausePlay() {
+            isRunning = false;
+            btnPlay.textContent = "▶ Watch Zesyde play";
+            btnPlay.classList.add("btn-primary");
+            btnPlay.classList.remove("btn-ghost");
+            clearInterval(timer);
+        }
+
+        async function resetGame() {
+            pausePlay();
+            try {
+                const res = await fetch("/api/reset", { method: "POST" });
+                const data = await res.json();
+                gameState = data.state;
+                totalDecisions = 0;
+                cumulativeCost = 0.0;
+                statDecisions.textContent = "0";
+                statLatency.textContent = "—";
+                statCost.textContent = "$0.00000";
+                decisionStream.innerHTML = '<span class="j-stream-empty" id="streamEmptyMsg">press play — watch Zesyde place pieces live</span>';
+                document.getElementById("streamCounter").textContent = "0 moves";
+                updateStats();
+                drawBoard();
+            } catch (err) {
+                console.error("Reset error:", err);
+            }
+        }
+
+        function setSpeed(ms, btnId) {
+            playInterval = ms;
+            document.querySelectorAll(".btn-speed").forEach(b => b.classList.remove("active"));
+            document.getElementById(btnId).classList.add("active");
+            if (isRunning) {
+                clearInterval(timer);
+                timer = setInterval(stepGame, playInterval);
+            }
+        }
+
+        fetchState();
+    </script>
+</body>
+</html>
