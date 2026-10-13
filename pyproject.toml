@@ -31,7 +31,7 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "peft",
-    'pytest
+    "pytest"
 ]
 
 [project.optional-dependencies]
