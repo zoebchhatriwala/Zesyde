@@ -18,5 +18,5 @@ def test_decision_example_invalid_options():
 
 def test_version():
     import zesyde
-    assert zesyde.__version__ == "1.0.1"
+    assert zesyde.__version__ == "1.1.0"
 
