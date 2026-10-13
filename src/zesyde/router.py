@@ -207,6 +207,7 @@ class ZesydeRouter:
             temperatures=temperatures,
             max_length=max_length,
             precision_routing=precision_routing,
+            prefer_fp32=prefer_fp32,
         )
 
     def get_temperature(self, question_type: str, option_count: int) -> float:

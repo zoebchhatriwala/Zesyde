@@ -399,7 +399,7 @@ Running the pipeline outputs complete serving artifacts to `models/`:
   author = {Chhatriwala, Zoeb},
   title = {Zesyde: Calibrated, Non-Autoregressive Decision & Routing Foundation Models},
   year = {2026},
-  version = {1.0.1},
+  version = {1.1.0},
   url = {https://huggingface.co/zoebchhatriwala/Zesyde-150M-Multilingual-Router}
 }
 ```
