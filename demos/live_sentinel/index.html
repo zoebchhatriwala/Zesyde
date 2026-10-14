@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zesyde Live Stream Judge — Real-Time Accuracy on Live Firehose</title>
+  <meta name="description" content="100% real live data streaming from Wikimedia EventStreams. Judged on pure CPU in sub-25ms with real-time empirical accuracy.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-badge">
+        <div class="brand-title">
+          Zesyde Live Stream Judge
+          <span class="brand-tag">FP32 CPU</span>
+        </div>
+      </div>
+      <div class="live-stream-badge">
+        <span class="live-pulse"></span>
+        <span>LIVE: Wikimedia EventStreams (50+ Languages)</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button id="toggle-stream-btn" class="btn btn-secondary">
+        <span class="btn-icon">⏸</span>
+        <span class="btn-label">Pause Stream</span>
+      </button>
+
+      <button id="speed-toggle-btn" class="btn btn-secondary" title="Cycle auto-swipe speed">
+        <span class="btn-icon">⚡</span>
+        <span class="btn-label" id="speed-label">Instant (Realtime)</span>
+      </button>
+
+      <button id="next-card-btn" class="btn btn-primary">
+        <span>Next Event (Swipe ➔)</span>
+      </button>
+
+      <button id="reset-stats-btn" class="btn btn-subtle" title="Reset accuracy scoreboard">
+        <span>Reset</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Top Real Telemetry Scoreboard -->
+  <section class="telemetry-bar">
+    <div class="telemetry-stat">
+      <div class="stat-label">Live Stream Empirical Accuracy</div>
+      <div class="stat-value-row">
+        <span class="stat-value text-accent" id="stat-accuracy">--%</span>
+        <span class="stat-detail" id="stat-count">(0 / 0 Matches)</span>
+      </div>
+      <div class="stat-subdetail">100% Real Live Stream Data</div>
+    </div>
+
+    <div class="telemetry-stat">
+      <div class="stat-label">Inference Latency (Pure CPU)</div>
+      <div class="stat-value-row">
+        <span class="stat-value text-cyan" id="stat-latency">--</span>
+        <span class="stat-unit">ms</span>
+        <span class="stat-detail">vs ~1,450ms GPT-4o</span>
+      </div>
+      <div class="stat-subdetail">100% On-Device AVX2</div>
+    </div>
+
+    <div class="telemetry-stat">
+      <div class="stat-label">Escalation Head Status</div>
+      <div class="stat-value-row">
+        <span class="stat-value text-amber" id="stat-escalate-rate">--%</span>
+        <span class="stat-unit">risk</span>
+        <span class="stat-detail" id="stat-escalate-count">(Calibrated Deferral)</span>
+      </div>
+      <div class="stat-subdetail">Uncertainty & Deferral Sentinel</div>
+    </div>
+
+    <div class="telemetry-stat">
+      <div class="stat-label">Stream Throughput</div>
+      <div class="stat-value-row">
+        <span class="stat-value" id="stat-progress">#0</span>
+        <span class="stat-detail" id="stat-total">Real Live Events</span>
+      </div>
+      <div class="stat-subdetail">Wikimedia EventStreams Firehose</div>
+    </div>
+  </section>
+
+  <!-- Big Hero Arena with Side-by-Side Model Input Inspector -->
+  <main class="arena-viewport">
+    <div class="arena-workspace">
+      <!-- Left Column: The Big Hero Card -->
+      <div class="card-stage" id="card-stage">
+        <!-- The Big Hero Card -->
+        <div class="hero-card" id="hero-card">
+          <!-- Top Card Meta -->
+          <div class="card-meta-bar">
+            <div class="card-stream-badge">
+              <span id="card-flag">🌐</span>
+              <span id="card-wiki-name">Wikimedia Global Firehose</span>
+              <span class="stream-index-badge" id="card-event-idx">Live Event #1</span>
+            </div>
+            <div class="card-user-info" id="card-user-info">
+              Connecting to live firehose...
+            </div>
+          </div>
+
+          <!-- The Real Live Context -->
+          <div class="card-context-box">
+            <div class="card-article-row">
+              <span class="article-label" id="card-target-type">Target / Page:</span>
+              <a href="#" target="_blank" rel="noopener" class="card-article-title" id="card-article-link">
+                Connecting...
+              </a>
+            </div>
+            <p id="card-context-text" class="context-paragraph">
+              Streaming real-time live edits directly from Wikimedia EventStreams...
+            </p>
+          </div>
+
+          <!-- Candidate Option Probability Bars -->
+          <div class="card-options-container">
+            <div class="options-header">Candidate Action Classifications & Calibrated Probabilities:</div>
+            <div class="options-grid" id="card-options-grid">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Bottom Judgment & Ground Truth Verdict Bar -->
+          <div class="card-judgment-footer" id="card-judgment-footer">
+            <div class="footer-left">
+              <div class="gt-badge">
+                <span class="gt-label">Wikipedia Server Ground Truth:</span>
+                <strong id="card-ground-truth" class="gt-val">--</strong>
+              </div>
+              <div class="pred-badge">
+                <span class="pred-label">Zesyde Prediction:</span>
+                <strong id="card-prediction" class="pred-val">--</strong>
+              </div>
+            </div>
+
+            <div class="footer-right">
+              <div class="verdict-stamp" id="card-verdict-stamp">
+                <span class="stamp-icon">⏳</span>
+                <span class="stamp-text">WAITING FOR EVENT</span>
+              </div>
+              <div class="latency-stamp" id="card-latency-stamp">
+                ⚡ -- ms CPU
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Live Model Input Inspector (Exact Data Sent to Zesyde) -->
+      <aside class="model-inspector-panel" id="model-inspector-panel">
+        <div class="inspector-header">
+          <div class="inspector-title">
+            <span class="inspector-icon">⚙️</span>
+            <span>DATA SENT TO MODEL</span>
+          </div>
+          <span class="inspector-tag">router.decide(context, options)</span>
+        </div>
+
+        <div class="inspector-body">
+          <!-- Exact Input String -->
+          <div class="inspector-section">
+            <div class="inspector-section-label">
+              <span>Exact Context String (Prompt Input)</span>
+              <span class="copy-badge" id="btn-copy-context" title="Copy context to clipboard">Copy</span>
+            </div>
+            <div class="inspector-code-box" id="inspector-context">
+              Waiting for incoming live stream event...
+            </div>
+          </div>
+
+          <!-- Escalation Head & Calibration Live Diagnostics -->
+          <div class="inspector-section">
+            <div class="inspector-section-label">Model Calibration & Confidence Diagnostics</div>
+            <div class="inspector-diagnostics-grid">
+              <div class="diag-meta-cell">
+                <span class="meta-label">Top Pick Confidence:</span>
+                <span class="meta-data text-accent" id="diag-stat-conf">--%</span>
+              </div>
+              <div class="diag-meta-cell">
+                <span class="meta-label">Decision Margin:</span>
+                <span class="meta-data text-cyan" id="diag-stat-margin">Δ --%</span>
+              </div>
+              <div class="diag-meta-cell">
+                <span class="meta-label">Escalation Risk:</span>
+                <span class="meta-data text-amber" id="diag-stat-escalate">--%</span>
+              </div>
+              <div class="diag-meta-cell">
+                <span class="meta-label">Ground Truth Match:</span>
+                <span class="meta-data" id="diag-stat-verdict">--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Question & Options Passed to Decide -->
+          <div class="inspector-section">
+            <div class="inspector-section-label">Evaluation Query & Candidate Options (4 Pure Action Classes)</div>
+            <div class="inspector-code-box query-box" id="inspector-query">
+              <div class="query-line"><strong>Question:</strong> Classify the official Wikipedia action type of this contribution:</div>
+              <div class="query-options-list">
+                <span>1. Automated Bot Operation</span>
+                <span>2. New Page Creation</span>
+                <span>3. Discussion or Talk Comment</span>
+                <span>4. Main Article Edit</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Raw Wikimedia Firehose Item -->
+          <div class="inspector-section">
+            <div class="inspector-section-label">Raw Wikimedia Firehose SSE Payload</div>
+            <pre class="inspector-json-box" id="inspector-raw-json">{\n  "status": "awaiting live stream packet..."\n}</pre>
+          </div>
+
+          <!-- Architecture & Precision Meta -->
+          <div class="inspector-footer-meta">
+            <div class="meta-item">
+              <span class="meta-k">Engine:</span>
+              <span class="meta-v">Zesyde 150M Foundation Router</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-k">Precision:</span>
+              <span class="meta-v text-cyan">FP32 ONNX (Zero Drift)</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-k">Hardware:</span>
+              <span class="meta-v">Pure CPU (AVX2 Execution)</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-k">Payload Tokens:</span>
+              <span class="meta-v" id="inspector-tokens">~0 tokens</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Navigation Footer Controls -->
+    <div class="arena-controls">
+      <div class="stream-hint">
+        100% Real Live Stream • Zero Datasets • Zero Canned Data
+      </div>
+
+      <div class="keyboard-hint">
+        Press <kbd>Space</kbd> or <kbd>➔</kbd> to Swipe to Next Live Event • Press <kbd>P</kbd> to Pause
+      </div>
+
+      <button id="btn-swipe-now" class="btn btn-primary btn-swipe">
+        <span>Swipe Next Event ➔</span>
+      </button>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
